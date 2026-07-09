@@ -1,0 +1,411 @@
+<main *ngIf="!token" class="login-shell">
+  <section class="login-panel">
+    <div class="login-visual">
+      <div class="brand-mark">
+        <svg lucideUtensils size="34"></svg>
+      </div>
+      <div>
+        <span>POS</span>
+        <h1>Bar D'maced</h1>
+        <p>Control de ventas, cuentas y pagos</p>
+      </div>
+      <div class="login-summary">
+        <strong>Admin</strong>
+        <small>Panel de caja</small>
+      </div>
+    </div>
+    <form class="login-form" (ngSubmit)="login()">
+      <div>
+        <h2>Ingresar</h2>
+        <p>Acceso administrativo</p>
+      </div>
+      <label>
+        Usuario
+        <input [(ngModel)]="username" name="username" autocomplete="username">
+      </label>
+      <label>
+        Contraseña
+        <input [(ngModel)]="password" name="password" type="password" autocomplete="current-password">
+      </label>
+      <button class="primary wide" type="submit" [disabled]="loading()">
+        <svg lucideWalletCards size="18"></svg>
+        Ingresar
+      </button>
+    </form>
+  </section>
+</main>
+
+<main *ngIf="token" class="app-shell">
+  <aside class="sidebar">
+    <div>
+      <div class="brand-row">
+        <span class="brand-icon"><svg lucideUtensils size="24"></svg></span>
+        <div>
+          <strong>Bar D'maced</strong>
+          <small>POS administrativo</small>
+        </div>
+      </div>
+      <nav>
+        <button [class.active]="tab() === 'dashboard'" (click)="tab.set('dashboard')">
+          <svg lucideChartNoAxesColumn size="18"></svg>
+          Dashboard
+        </button>
+        <button [class.active]="tab() === 'sale'" (click)="tab.set('sale')">
+          <svg lucideReceiptText size="18"></svg>
+          Venta
+        </button>
+        <button [class.active]="tab() === 'products'" (click)="tab.set('products')">
+          <svg lucidePackage size="18"></svg>
+          Productos
+        </button>
+        <button [class.active]="tab() === 'history'" (click)="tab.set('history')">
+          <svg lucideHistory size="18"></svg>
+          Historial
+        </button>
+      </nav>
+    </div>
+    <button class="ghost" (click)="logout()">
+      <svg lucideLogOut size="18"></svg>
+      Salir
+    </button>
+  </aside>
+
+  <section class="content">
+    <section *ngIf="tab() === 'sale'" class="sale-layout">
+      <div class="catalog">
+        <header class="section-head pos-head">
+          <div>
+            <h2>{{ editingSaleId() ? 'Editar cuenta #' + editingSaleId() : 'Nueva cuenta' }}</h2>
+            <p>{{ editingSaleId() ? 'Ajusta productos, notas, promo, descuento o mesa.' : 'Carta activa, promociones y detalle de pedido.' }}</p>
+          </div>
+          <button *ngIf="!editingSaleId()" class="secondary" (click)="tab.set('products')" title="Crear producto">
+            <svg lucidePlus size="18"></svg>
+          </button>
+          <button *ngIf="editingSaleId()" class="secondary" (click)="cancelSaleEdit()" title="Cancelar edición">
+            <svg lucideRotateCcw size="18"></svg>
+          </button>
+        </header>
+
+        <div class="catalog-toolbar">
+          <label class="search-box">
+            <span>Buscar producto</span>
+            <input [ngModel]="productSearch()" (ngModelChange)="productSearch.set($event)" placeholder="Alitas, chilcano, vaso...">
+            <small>{{ visibleProductCount() }} resultados</small>
+          </label>
+          <div class="promo-panel" [class.active]="promoActive">
+            <label class="check">
+              <input type="checkbox" [(ngModel)]="promoActive">
+              Activar promo 3x2
+            </label>
+            <select [(ngModel)]="promoScope" [disabled]="!promoActive">
+              <option value="ALL">Toda la carta elegible</option>
+              <option *ngFor="let category of categories()" [value]="category.code">
+                {{ category.label }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <div class="category-group" *ngFor="let group of groupedProducts()">
+          <h3>{{ group.label }}</h3>
+          <div class="product-grid">
+            <button class="product-tile" [class.promo-on]="isPromoProduct(product)" *ngFor="let product of group.products" (click)="addToCart(product)">
+              <strong>{{ product.name }}</strong>
+              <span>{{ money(product.price) }}</span>
+              <small *ngIf="isPromoProduct(product)">Promo activa</small>
+            </button>
+          </div>
+        </div>
+        <p *ngIf="!visibleProductCount()" class="empty-state">No hay productos que coincidan con la busqueda.</p>
+      </div>
+
+      <aside class="checkout">
+        <div class="checkout-head">
+          <div>
+            <h2>Detalle</h2>
+            <p>{{ cart().length }} productos en cuenta</p>
+          </div>
+          <label class="location-select">
+            <span>Destino</span>
+            <select [ngModel]="serviceLocation" (ngModelChange)="updateServiceLocation($event)">
+              <option *ngFor="let option of serviceOptions" [value]="option.value">{{ option.label }}</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="cart-list">
+          <article *ngFor="let item of cart()" class="cart-item">
+            <div class="cart-main">
+              <strong>{{ item.product.name }}</strong>
+              <small>{{ money(item.product.price) }} c/u</small>
+              <input class="note-input" [(ngModel)]="item.note" placeholder="Nota: salsa aparte, dulce, sin hielo...">
+            </div>
+            <div class="qty">
+              <button (click)="changeQuantity(item.product.id, -1)">-</button>
+              <span>{{ item.quantity }}</span>
+              <button (click)="changeQuantity(item.product.id, 1)">+</button>
+            </div>
+            <b>{{ money(item.product.price * item.quantity) }}</b>
+            <button class="icon-danger" (click)="removeFromCart(item.product.id)" title="Quitar">
+              <svg lucideTrash2 size="16"></svg>
+            </button>
+          </article>
+          <p *ngIf="!cart().length" class="empty">Aun no hay productos en la cuenta.</p>
+        </div>
+
+        <div class="totals">
+          <span>Subtotal</span>
+          <strong>{{ money(cartSubtotal()) }}</strong>
+          <span *ngIf="estimatedPromoDiscount() > 0">Promo 3x2</span>
+          <strong *ngIf="estimatedPromoDiscount() > 0">-{{ money(estimatedPromoDiscount()) }}</strong>
+          <span>Descuento {{ discountPercent || 0 }}%</span>
+          <strong>-{{ money(estimatedDiscount()) }}</strong>
+          <span class="grand-label">Total estimado</span>
+          <strong class="grand-amount">{{ money(estimatedTotal()) }}</strong>
+          <span>Pagos registrados</span>
+          <strong>{{ money(saleTotalPaidDraft()) }}</strong>
+          <span class="due-label">Pendiente</span>
+          <strong class="due-amount">{{ money(estimatedRemaining()) }}</strong>
+        </div>
+
+        <div class="discount-box">
+          <label>
+            Descuento %
+            <input [(ngModel)]="discountPercent" type="number" min="0" max="100" step="1">
+          </label>
+          <span>
+            <small>Se descuenta</small>
+            {{ money(estimatedDiscount()) }}
+          </span>
+        </div>
+
+        <div class="payment-row">
+          <select [(ngModel)]="paymentMethod">
+            <option value="EFECTIVO">Efectivo</option>
+            <option value="YAPE">Yape</option>
+            <option value="VISA">Visa</option>
+          </select>
+          <input class="amount-input" [(ngModel)]="paymentAmount" inputmode="decimal" placeholder="Monto" [disabled]="editingSaleId() !== null || savingSale() || !cart().length || estimatedRemaining() <= 0">
+          <button class="secondary icon-only" (click)="addDraftPayment()" title="Agregar pago" [disabled]="editingSaleId() !== null || savingSale() || !cart().length || estimatedRemaining() <= 0">
+            <svg lucidePlus size="18"></svg>
+          </button>
+        </div>
+        <div class="chips">
+          <button *ngFor="let payment of payments(); let i = index" (click)="removeDraftPayment(i)" [disabled]="savingSale()">
+            {{ methodLabel(payment.method) }} {{ money(payment.amount) }}
+          </button>
+        </div>
+
+        <button class="primary wide" (click)="createSale()" [disabled]="savingSale() || !cart().length">
+          <svg lucideSave size="18"></svg>
+          {{ savingSale() ? 'Guardando...' : editingSaleId() ? 'Actualizar cuenta' : 'Guardar cuenta' }}
+        </button>
+      </aside>
+    </section>
+
+    <section *ngIf="tab() === 'products'" class="two-columns">
+      <form class="panel product-editor" (ngSubmit)="saveProduct()">
+        <header class="section-head tight">
+          <div>
+            <h2>{{ productForm.id ? 'Editar producto' : 'Crear producto' }}</h2>
+            <p>Carta, disponibilidad y promo.</p>
+          </div>
+        </header>
+        <label>Nombre<input [(ngModel)]="productForm.name" name="name" required></label>
+        <label>Seccion
+          <select [(ngModel)]="productForm.category" name="category">
+            <option *ngFor="let category of categories()" [value]="category.code">{{ category.label }}</option>
+          </select>
+        </label>
+        <label>Precio<input [(ngModel)]="productForm.price" name="price" type="number" min="0" step="0.1"></label>
+        <label class="check"><input [(ngModel)]="productForm.promoEligible" name="promo" type="checkbox">Entra a 3x2</label>
+        <label class="check"><input [(ngModel)]="productForm.active" name="active" type="checkbox">Disponible en carta</label>
+        <div class="form-actions">
+          <button class="primary" type="submit"><svg lucideSave size="18"></svg>Guardar</button>
+          <button class="secondary" type="button" (click)="resetProductForm()">Limpiar</button>
+        </div>
+      </form>
+
+      <div class="panel list-panel">
+        <header class="section-head">
+          <div>
+            <h2>Carta</h2>
+            <p>{{ filteredProducts().length }} productos filtrados de {{ productCounts().total }}.</p>
+          </div>
+        </header>
+
+        <div class="product-filters">
+          <label class="search-box compact-search">
+            <span>Buscar</span>
+            <input [ngModel]="productAdminSearch()" (ngModelChange)="productAdminSearch.set($event)" name="adminSearch" placeholder="Nombre o seccion">
+          </label>
+          <label>
+            Categoria
+            <select [ngModel]="productCategoryFilter()" (ngModelChange)="productCategoryFilter.set($event)" name="categoryFilter">
+              <option value="ALL">Todas</option>
+              <option *ngFor="let category of categories()" [value]="category.code">{{ category.label }}</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="segmented">
+          <button type="button" [class.active]="productStatusFilter() === 'ACTIVE'" (click)="productStatusFilter.set('ACTIVE')">Activos {{ productCounts().active }}</button>
+          <button type="button" [class.active]="productStatusFilter() === 'INACTIVE'" (click)="productStatusFilter.set('INACTIVE')">Inactivos {{ productCounts().inactive }}</button>
+          <button type="button" [class.active]="productStatusFilter() === 'DELETED'" (click)="productStatusFilter.set('DELETED')">Eliminados {{ productCounts().deleted }}</button>
+          <button type="button" [class.active]="productStatusFilter() === 'ALL'" (click)="productStatusFilter.set('ALL')">Todos</button>
+        </div>
+
+        <div class="product-card-grid">
+          <article class="admin-product-card" *ngFor="let product of filteredProducts()" [class.deleted]="product.deleted" [class.inactive]="!product.active">
+            <div class="product-card-body">
+              <div class="product-card-head">
+                <div>
+                  <strong>{{ product.name }}</strong>
+                  <small>{{ product.categoryLabel }}</small>
+                </div>
+                <b>{{ money(product.price) }}</b>
+              </div>
+              <div class="product-badges">
+                <span [class.ok]="product.active && !product.deleted" [class.warn]="!product.active && !product.deleted" [class.muted]="product.deleted">
+                  {{ product.deleted ? 'Eliminado' : product.active ? 'Activo' : 'Inactivo' }}
+                </span>
+                <span>{{ product.promoEligible ? 'Elegible 3x2' : 'Sin promo' }}</span>
+              </div>
+            </div>
+            <div class="row-actions">
+              <button *ngIf="!product.deleted && !product.active" class="secondary icon-action" (click)="toggleProduct(product)" title="Activar producto">
+                <svg lucidePower size="16"></svg>
+              </button>
+              <button *ngIf="!product.deleted" class="danger icon-action" (click)="deleteProduct(product)" title="Eliminar producto">
+                <svg lucideTrash2 size="16"></svg>
+              </button>
+              <button *ngIf="product.deleted" class="secondary icon-action" (click)="restoreProduct(product)" title="Restaurar producto">
+                <svg lucideRotateCcw size="16"></svg>
+              </button>
+            </div>
+          </article>
+          <p *ngIf="!filteredProducts().length" class="empty-state products-empty">No hay productos para este filtro.</p>
+        </div>
+      </div>
+    </section>
+
+    <section *ngIf="tab() === 'history'" class="history-layout">
+      <div class="panel">
+        <header class="section-head history-head">
+          <div>
+            <h2>Historial</h2>
+            <p>Consulta ventas del dia y descarga comprobantes.</p>
+          </div>
+        </header>
+        <div class="history-tools">
+          <input class="date-input" [(ngModel)]="historyDate" type="date" (change)="loadSales()">
+          <button class="secondary compact" (click)="downloadDayPdf()" title="Descargar PDF del dia">
+            <svg lucideDownload size="16"></svg>
+            PDF
+          </button>
+        </div>
+        <article class="sale-row" *ngFor="let sale of sales()" (click)="selectedSale.set(sale)" [class.active]="selectedSale()?.id === sale.id">
+          <div>
+            <strong>#{{ sale.id }} · {{ money(sale.total) }}</strong>
+            <small>{{ sale.createdAt | date:'short' }} · {{ sale.status }}</small>
+          </div>
+          <b>{{ money(sale.remaining) }} pendiente</b>
+          <div class="sale-actions">
+            <button class="secondary icon-action" (click)="editSale(sale, $event)" title="Editar venta">
+              <svg lucidePencil size="15"></svg>
+            </button>
+            <button class="danger icon-action" (click)="deleteSale(sale, $event)" title="Eliminar venta">
+              <svg lucideTrash2 size="15"></svg>
+            </button>
+          </div>
+        </article>
+        <p *ngIf="!sales().length" class="empty-state">No hay ventas registradas en esta fecha.</p>
+      </div>
+
+      <div class="panel">
+        <header class="section-head">
+          <h2>Comprobante</h2>
+          <button class="secondary compact" (click)="downloadTicketImage()" [disabled]="!selectedSale()">
+            <svg lucideDownload size="16"></svg>
+            Imagen
+          </button>
+        </header>
+        <ng-container *ngIf="selectedSale() as sale">
+          <div class="ticket" [id]="'ticket-' + sale.id">
+            <h2>Bar D'maced</h2>
+            <p>Venta #{{ sale.id }}</p>
+            <p>{{ sale.createdAt | date:'medium' }} · {{ serviceLocationLabel(sale.serviceLocation, sale.takeaway) }}</p>
+            <table>
+              <thead><tr><th>Cant.</th><th>Producto</th><th>P. unit.</th><th>Total</th></tr></thead>
+              <tbody>
+                <tr *ngFor="let item of sale.items">
+                  <td>{{ item.quantity }}</td>
+                  <td>{{ item.productName }}<br><small *ngIf="item.note">{{ item.note }}</small></td>
+                  <td>{{ money(item.unitPrice) }}</td>
+                  <td>{{ money(item.lineTotal) }}</td>
+                </tr>
+              </tbody>
+            </table>
+            <div class="ticket-total"><span>Subtotal</span><b>{{ money(sale.subtotal) }}</b></div>
+            <div class="ticket-total" *ngIf="sale.promoDiscount > 0"><span>Promo 3x2</span><b>-{{ money(sale.promoDiscount) }}</b></div>
+            <div class="ticket-total" *ngIf="sale.manualDiscountAmount > 0"><span>Descuento {{ sale.manualDiscountPercent }}%</span><b>-{{ money(sale.manualDiscountAmount) }}</b></div>
+            <div class="ticket-total grand"><span>Total</span><b>{{ money(sale.total) }}</b></div>
+            <div class="ticket-total"><span>Pagado</span><b>{{ money(sale.paid) }}</b></div>
+            <div class="ticket-total"><span>Pendiente</span><b>{{ money(sale.remaining) }}</b></div>
+            <p *ngFor="let payment of sale.payments">Pago: {{ payment.methodLabel }} · {{ money(payment.amount) }}</p>
+          </div>
+
+          <div class="payment-row">
+            <select [(ngModel)]="historyPaymentMethod">
+              <option value="EFECTIVO">Efectivo</option>
+              <option value="YAPE">Yape</option>
+              <option value="VISA">Visa</option>
+            </select>
+            <input class="amount-input" [(ngModel)]="historyPaymentAmount" inputmode="decimal" placeholder="Monto" [disabled]="savingHistoryPayment() || sale.remaining <= 0">
+            <button class="primary icon-only" (click)="addHistoryPayment()" [disabled]="savingHistoryPayment() || sale.remaining <= 0" title="Registrar pago">
+              <svg lucideBanknote size="18"></svg>
+            </button>
+          </div>
+        </ng-container>
+        <p *ngIf="!selectedSale()" class="empty-state">Selecciona una venta para ver el comprobante.</p>
+      </div>
+    </section>
+
+    <section *ngIf="tab() === 'dashboard'" class="dashboard" >
+      <ng-container *ngIf="dashboard() as data">
+        <header class="dashboard-head">
+          <div>
+            <h2>Dashboard</h2>
+            <p>Resumen operativo de caja y ventas.</p>
+          </div>
+          <button class="primary compact" (click)="tab.set('sale')">
+            <svg lucideReceiptText size="16"></svg>
+            Nueva cuenta
+          </button>
+        </header>
+        <article class="metric"><span>Ventas hoy</span><strong>{{ money(data.todaySales) }}</strong><small>{{ data.todayOrders }} cuentas</small></article>
+        <article class="metric"><span>Cobrado hoy</span><strong>{{ money(dashboardTodayPaid(data)) }}</strong><small>Pagos registrados</small></article>
+        <article class="metric"><span>Ticket promedio</span><strong>{{ money(dashboardAverageTicket(data)) }}</strong><small>Promedio del dia</small></article>
+        <article class="metric"><span>Ventas semana</span><strong>{{ money(data.weekSales) }}</strong><small>{{ dashboardWeekOrders(data) }} cuentas</small></article>
+        <article class="metric"><span>Ventas mes</span><strong>{{ money(data.monthSales) }}</strong><small>Mes actual</small></article>
+        <article class="metric warn"><span>Pendiente</span><strong>{{ money(data.pendingAmount) }}</strong><small>Cuentas por cobrar</small></article>
+        <article class="metric"><span>Mejor dia semana</span><strong>{{ dashboardBestDay(data) }}</strong><small>Segun total vendido</small></article>
+        <article class="metric muted-metric"><span>Productos activos</span><strong>{{ productCounts().active }}</strong><small>{{ productCounts().inactive }} inactivos</small></article>
+        <div class="panel week-panel">
+          <header class="section-head tight">
+            <div>
+              <h2>Semana</h2>
+              <p>Venta diaria y avance de cobro.</p>
+            </div>
+          </header>
+          <div class="bar-row" *ngFor="let day of data.weekByDay">
+            <span>{{ shortDate(day.date) }}</span>
+            <div><i [style.width.%]="data.weekSales ? (day.total / data.weekSales) * 100 : 0"></i></div>
+            <b>{{ money(day.total) }}</b>
+            <small>{{ day.sales }} ventas · cobrado {{ money(day.paid) }}</small>
+          </div>
+        </div>
+      </ng-container>
+    </section>
+  </section>
+</main>

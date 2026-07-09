@@ -1,0 +1,16 @@
+.DS_Store
+
+# Java
+backend/target/
+
+# Angular
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+
+# Local/runtime
+.env
+.env.*
+tmp/
+work/
+outputs/
