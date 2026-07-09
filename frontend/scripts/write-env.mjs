@@ -3,7 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const apiUrl = process.env.API_URL || 'http://localhost:8080/api';
+const apiUrl = process.env.API_URL || 'https://sistventa-maced-backend.onrender.com/api';
 const target = join(root, 'public', 'env.js');
 
 mkdirSync(dirname(target), { recursive: true });
