@@ -139,8 +139,8 @@ export class App implements OnInit {
   sales = signal<Sale[]>([]);
   selectedSale = signal<Sale | null>(null);
   dashboard = signal<Dashboard | null>(null);
-  saleDate = new Date().toISOString().slice(0, 10);
-  historyDate = new Date().toISOString().slice(0, 10);
+  saleDate = this.currentDateInput();
+  historyDate = this.currentDateInput();
   loading = signal(false);
   savingSale = signal(false);
   savingHistoryPayment = signal(false);
@@ -404,11 +404,6 @@ export class App implements OnInit {
       Swal.fire('Cuenta vacía', 'Agrega productos antes de guardar.', 'warning');
       return;
     }
-    if (this.saleTotalPaidDraft() > this.estimatedTotal()) {
-      Swal.fire('Pagos excedidos', `Los pagos no pueden superar ${this.money(this.estimatedTotal())}.`, 'warning');
-      return;
-    }
-
     const promoCategories = this.promoActive && this.promoScope !== 'ALL' ? [this.promoScope] : [];
     const payload = {
       saleDate: this.saleDate,
@@ -418,7 +413,7 @@ export class App implements OnInit {
       discountPercent: Number(this.discountPercent || 0),
       promoCategories,
       items: this.cart().map(item => ({ productId: item.product.id, quantity: item.quantity, note: item.note })),
-      payments: this.editingSaleId() ? [] : this.payments()
+      payments: []
     };
 
     this.savingSale.set(true);
@@ -430,10 +425,12 @@ export class App implements OnInit {
     request.subscribe({
       next: sale => {
         this.selectedSale.set(sale);
+        this.historyDate = sale.createdAt.slice(0, 10);
         this.resetSaleDraft();
         this.loadSales();
         this.loadDashboard();
-        Swal.fire(editingId ? 'Cuenta actualizada' : 'Cuenta guardada', `Total: ${this.money(sale.total)}`, 'success');
+        this.tab.set('history');
+        Swal.fire(editingId ? 'Cuenta actualizada' : 'Cuenta guardada', `Pendiente por cobrar: ${this.money(sale.remaining)}`, 'success');
       },
       error: error => Swal.fire('No se pudo guardar', this.errorMessage(error), 'error'),
       complete: () => this.savingSale.set(false)
@@ -502,16 +499,18 @@ export class App implements OnInit {
     if (this.savingHistoryPayment()) {
       return;
     }
-    const amount = this.parseAmount(this.historyPaymentAmount);
-    if (!sale || amount <= 0) {
+    const received = this.parseAmount(this.historyPaymentAmount);
+    if (!sale || received <= 0) {
       Swal.fire('Pago inválido', 'Selecciona una venta e ingresa un importe.', 'warning');
       return;
     }
-    if (amount > Number(sale.remaining)) {
-      Swal.fire('Pago mayor al pendiente', `Solo falta pagar ${this.money(sale.remaining)}.`, 'warning');
-      this.historyPaymentAmount = Number(sale.remaining).toFixed(2);
+    const remaining = Number(sale.remaining);
+    if (remaining <= 0) {
+      Swal.fire('Cuenta pagada', 'Esta venta ya no tiene saldo pendiente.', 'info');
       return;
     }
+    const amount = Math.min(received, remaining);
+    const change = Math.max(0, received - remaining);
     this.savingHistoryPayment.set(true);
     this.http.post<Sale>(`${this.api}/sales/${sale.id}/payments`, {
       method: this.historyPaymentMethod,
@@ -521,6 +520,9 @@ export class App implements OnInit {
       this.historyPaymentAmount = '';
       this.loadSales();
       this.loadDashboard();
+      if (change > 0) {
+        Swal.fire('Pago registrado', `Vuelto: ${this.money(change)}`, 'success');
+      }
     }, error => {
       Swal.fire('No se pudo registrar', this.errorMessage(error), 'error');
     }).add(() => {
@@ -535,6 +537,10 @@ export class App implements OnInit {
     }
     this.historyPaymentAmount = Number(sale.remaining).toFixed(2);
     this.addHistoryPayment();
+  }
+
+  historyPaymentChange(sale: Sale): number {
+    return Math.max(0, this.parseAmount(this.historyPaymentAmount) - Number(sale.remaining || 0));
   }
 
   async downloadTicketImage(): Promise<void> {
@@ -951,7 +957,7 @@ export class App implements OnInit {
   }
 
   dashboardTodayPaid(data: Dashboard): number {
-    const today = new Date().toISOString().slice(0, 10);
+    const today = this.currentDateInput();
     return Number(data.weekByDay.find(day => day.date === today)?.paid || 0);
   }
 
@@ -1063,6 +1069,14 @@ export class App implements OnInit {
 
   private parseAmount(value: string): number {
     return Number((value || '').replace(',', '.')) || 0;
+  }
+
+  private currentDateInput(): string {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 
   private normalize(value: string): string {

@@ -168,10 +168,8 @@
           <strong>-{{ money(estimatedDiscount()) }}</strong>
           <span class="grand-label">Total estimado</span>
           <strong class="grand-amount">{{ money(estimatedTotal()) }}</strong>
-          <span>Pagos registrados</span>
-          <strong>{{ money(saleTotalPaidDraft()) }}</strong>
-          <span class="due-label">Pendiente</span>
-          <strong class="due-amount">{{ money(estimatedRemaining()) }}</strong>
+          <span class="due-label">Estado inicial</span>
+          <strong class="due-amount">Pendiente</strong>
         </div>
 
         <div class="discount-box">
@@ -183,23 +181,6 @@
             <small>Se descuenta</small>
             {{ money(estimatedDiscount()) }}
           </span>
-        </div>
-
-        <div class="payment-row">
-          <select [(ngModel)]="paymentMethod">
-            <option value="EFECTIVO">Efectivo</option>
-            <option value="YAPE">Yape</option>
-            <option value="VISA">Visa</option>
-          </select>
-          <input class="amount-input" [(ngModel)]="paymentAmount" inputmode="decimal" placeholder="Monto" [disabled]="editingSaleId() !== null || savingSale() || !cart().length || estimatedRemaining() <= 0">
-          <button class="secondary icon-only" (click)="addDraftPayment()" title="Agregar pago" [disabled]="editingSaleId() !== null || savingSale() || !cart().length || estimatedRemaining() <= 0">
-            <svg lucidePlus size="18"></svg>
-          </button>
-        </div>
-        <div class="chips">
-          <button *ngFor="let payment of payments(); let i = index" (click)="removeDraftPayment(i)" [disabled]="savingSale()">
-            {{ methodLabel(payment.method) }} {{ money(payment.amount) }}
-          </button>
         </div>
 
         <button class="primary wide" (click)="createSale()" [disabled]="savingSale() || !cart().length">
@@ -315,7 +296,7 @@
             <strong>#{{ sale.id }} · {{ money(sale.total) }}</strong>
             <small>{{ sale.createdAt | date:'short' }} · {{ saleStatusLabel(sale) }}</small>
           </div>
-          <b>{{ money(sale.remaining) }} pendiente</b>
+          <b [class.paid-label]="saleStatusLabel(sale) === 'PAGADA'">{{ saleStatusLabel(sale) === 'PAGADA' ? 'Pagada' : money(sale.remaining) + ' pendiente' }}</b>
           <div class="sale-actions">
             <button class="secondary icon-action" (click)="editSale(sale, $event)" title="Editar venta">
               <svg lucidePencil size="15"></svg>
@@ -357,7 +338,7 @@
             <div class="ticket-total" *ngIf="sale.manualDiscountAmount > 0"><span>Descuento {{ sale.manualDiscountPercent }}%</span><b>-{{ money(sale.manualDiscountAmount) }}</b></div>
             <div class="ticket-total grand"><span>Total</span><b>{{ money(sale.total) }}</b></div>
             <div class="ticket-total"><span>Pagado</span><b>{{ money(sale.paid) }}</b></div>
-            <div class="ticket-total"><span>Pendiente</span><b>{{ money(sale.remaining) }}</b></div>
+            <div class="ticket-total"><span>{{ saleStatusLabel(sale) === 'PAGADA' ? 'Estado' : 'Pendiente' }}</span><b>{{ saleStatusLabel(sale) === 'PAGADA' ? 'Pagada' : money(sale.remaining) }}</b></div>
             <p *ngFor="let payment of sale.payments">Pago: {{ payment.methodLabel }} · {{ money(payment.amount) }}</p>
           </div>
 
@@ -375,6 +356,8 @@
               <svg lucideCheckCircle2 size="18"></svg>
             </button>
           </div>
+          <p class="change-hint" *ngIf="historyPaymentChange(sale) > 0">Vuelto: {{ money(historyPaymentChange(sale)) }}</p>
+          <p class="paid-note" *ngIf="sale.remaining <= 0">Cuenta pagada.</p>
         </ng-container>
         <p *ngIf="!selectedSale()" class="empty-state">Selecciona una venta para ver el comprobante.</p>
       </div>

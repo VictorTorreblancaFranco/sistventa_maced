@@ -16,6 +16,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -27,6 +28,7 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class SaleService {
   private static final BigDecimal ZERO = BigDecimal.ZERO;
+  private static final ZoneId APP_ZONE = ZoneId.of(System.getenv().getOrDefault("APP_TIMEZONE", "America/Lima"));
 
   private final SaleRepository saleRepository;
   private final ProductRepository productRepository;
@@ -90,7 +92,7 @@ public class SaleService {
 
   @Transactional(readOnly = true)
   public DashboardResponse dashboard() {
-    LocalDate today = LocalDate.now();
+    LocalDate today = LocalDate.now(APP_ZONE);
     LocalDate weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     LocalDate monthStart = today.withDayOfMonth(1);
 
@@ -130,16 +132,16 @@ public class SaleService {
 
   private LocalDateTime resolveCreatedAt(SaleRequest request) {
     if (request.saleDate() == null) {
-      return LocalDateTime.now();
+      return LocalDateTime.now(APP_ZONE);
     }
-    return request.saleDate().atTime(LocalTime.now());
+    return request.saleDate().atTime(LocalTime.now(APP_ZONE));
   }
 
   private void updateSaleDate(Sale sale, SaleRequest request) {
     if (request.saleDate() == null) {
       return;
     }
-    LocalTime time = sale.getCreatedAt() == null ? LocalTime.now() : sale.getCreatedAt().toLocalTime();
+    LocalTime time = sale.getCreatedAt() == null ? LocalTime.now(APP_ZONE) : sale.getCreatedAt().toLocalTime();
     sale.setCreatedAt(request.saleDate().atTime(time));
   }
 
@@ -254,7 +256,7 @@ public class SaleService {
     payment.setSale(sale);
     payment.setMethod(request.method());
     payment.setAmount(request.amount());
-    payment.setPaidAt(LocalDateTime.now());
+    payment.setPaidAt(LocalDateTime.now(APP_ZONE));
     sale.getPayments().add(payment);
   }
 

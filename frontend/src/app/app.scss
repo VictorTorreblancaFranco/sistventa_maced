@@ -686,6 +686,18 @@ nav button.active {
   width: 30px;
 }
 
+.change-hint,
+.paid-note {
+  color: var(--brand);
+  font-size: 13px;
+  font-weight: 800;
+  margin: -2px 0 0;
+}
+
+.paid-label {
+  color: var(--brand);
+}
+
 .chips {
   display: flex;
   flex-wrap: wrap;
