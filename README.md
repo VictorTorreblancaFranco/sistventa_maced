@@ -15,17 +15,15 @@ pagos e historial pertenecen al mismo flujo operativo y comparten una sola base 
 
 ## Ejecutar
 
-Backend:
+Backend local con Docker:
 
 ```bash
-cd backend
-export JDBC_DATABASE_URL="jdbc:postgresql://host/db?sslmode=require&channel_binding=require"
-export DATABASE_USERNAME="usuario"
-export DATABASE_PASSWORD="password"
-mvn spring-boot:run
+cp .env.example .env
+# Edita .env y coloca tu password real de Neon.
+docker compose up --build
 ```
 
-Frontend:
+Frontend local:
 
 ```bash
 cd frontend
@@ -50,32 +48,25 @@ export DATABASE_PASSWORD="password"
 
 No se suben credenciales de Neon al repositorio.
 
-## Despliegue
+## Despliegue actual
 
-### Backend en Render
+### Backend local en Docker
 
-El backend esta preparado con `backend/Dockerfile` y `render.yaml`.
-
-En Render crea un Web Service desde este repositorio. Puedes usar el Blueprint
-(`render.yaml`) o crear el servicio manualmente con:
-
-- Root directory: `backend`
-- Environment: `Docker`
-- Dockerfile path: `backend/Dockerfile`
-
-Variables en Render:
+El backend se ejecuta en tu computadora como imagen Docker y queda disponible en:
 
 ```text
-JDBC_DATABASE_URL=jdbc:postgresql://.../neondb?sslmode=require&channel_binding=require
-DATABASE_USERNAME=neondb_owner
-DATABASE_PASSWORD=...
-ADMIN_USER=admin
-ADMIN_PASSWORD=Admin123@
-TOKEN_SECRET=un-texto-largo-seguro
-CORS_ALLOWED_ORIGIN=https://tu-frontend.vercel.app
+http://localhost:8080/api
 ```
 
-Render asigna `PORT` automaticamente y el backend lo lee.
+Comandos:
+
+```bash
+cp .env.example .env
+# Edita .env y coloca DATABASE_PASSWORD.
+docker compose up --build
+```
+
+El repositorio no guarda credenciales reales. El archivo `.env` queda solo en tu maquina.
 
 ### Frontend en Vercel
 
@@ -85,14 +76,14 @@ En Vercel importa el mismo repositorio y configura:
 - Build command: `npm run build`
 - Output directory: `dist/frontend/browser`
 
-Variable en Vercel:
+Si no defines `API_URL`, el build usa:
 
 ```text
-API_URL=https://tu-backend.onrender.com/api
+http://localhost:8080/api
 ```
 
-El build genera `public/env.js` con esa URL. En local, si no defines `API_URL`,
-usa `http://localhost:8080/api`.
+Para usar el frontend de Vercel, primero levanta Docker localmente y luego abre la web
+desde esa misma computadora.
 
 ## Reglas implementadas
 
@@ -107,4 +98,5 @@ usa `http://localhost:8080/api`.
 - Pagos multiples con efectivo, Yape y Visa.
 - Pagos parciales sobre una cuenta ya guardada.
 - Historial diario, dashboard semanal/mensual y saldo pendiente.
+- Fecha manual de venta para registrar cuentas de dias anteriores.
 - Descarga de imagen por venta y PDF con comprobantes del dia.

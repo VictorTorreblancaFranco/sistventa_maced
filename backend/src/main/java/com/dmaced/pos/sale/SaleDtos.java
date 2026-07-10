@@ -18,6 +18,7 @@ public class SaleDtos {
   public record PaymentRequest(@NotNull PaymentMethod method, @NotNull @DecimalMin("0.01") BigDecimal amount) {}
 
   public record SaleRequest(
+      LocalDate saleDate,
       boolean takeaway,
       String serviceLocation,
       boolean promoActive,

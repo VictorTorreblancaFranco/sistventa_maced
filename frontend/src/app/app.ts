@@ -4,6 +4,7 @@ import { Component, OnInit, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import {
   LucideBanknote,
+  LucideCheckCircle2,
   LucideChartNoAxesColumn,
   LucideDownload,
   LucideHistory,
@@ -103,6 +104,7 @@ interface Dashboard {
     CommonModule,
     FormsModule,
     LucideBanknote,
+    LucideCheckCircle2,
     LucideChartNoAxesColumn,
     LucideDownload,
     LucideHistory,
@@ -136,6 +138,7 @@ export class App implements OnInit {
   sales = signal<Sale[]>([]);
   selectedSale = signal<Sale | null>(null);
   dashboard = signal<Dashboard | null>(null);
+  saleDate = new Date().toISOString().slice(0, 10);
   historyDate = new Date().toISOString().slice(0, 10);
   loading = signal(false);
   savingSale = signal(false);
@@ -407,6 +410,7 @@ export class App implements OnInit {
 
     const promoCategories = this.promoActive && this.promoScope !== 'ALL' ? [this.promoScope] : [];
     const payload = {
+      saleDate: this.saleDate,
       takeaway: this.isTakeawayOrder(),
       serviceLocation: this.isTakeawayOrder() ? 'PARA_LLEVAR' : this.serviceLocation,
       promoActive: this.promoActive,
@@ -453,6 +457,7 @@ export class App implements OnInit {
     this.promoActive = sale.promoActive;
     this.promoScope = 'ALL';
     this.discountPercent = Number(sale.manualDiscountPercent || 0);
+    this.saleDate = sale.createdAt.slice(0, 10);
     this.serviceLocation = sale.serviceLocation || (sale.takeaway ? 'PARA_LLEVAR' : 'A1');
     this.takeaway = sale.takeaway || this.serviceLocation === 'PARA_LLEVAR';
     this.paymentAmount = '';
@@ -522,6 +527,15 @@ export class App implements OnInit {
     });
   }
 
+  completeSelectedSale(): void {
+    const sale = this.selectedSale();
+    if (!sale || this.savingHistoryPayment() || Number(sale.remaining) <= 0) {
+      return;
+    }
+    this.historyPaymentAmount = Number(sale.remaining).toFixed(2);
+    this.addHistoryPayment();
+  }
+
   async downloadTicketImage(): Promise<void> {
     const sale = this.selectedSale();
     if (!sale) {
@@ -544,36 +558,156 @@ export class App implements OnInit {
       return;
     }
     const pdf = new jsPDF('p', 'mm', 'a4');
-    const host = document.createElement('div');
-    host.style.left = '-10000px';
-    host.style.position = 'fixed';
-    host.style.top = '0';
-    document.body.appendChild(host);
-    let pages = 0;
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 12;
+    const sales = [...this.sales()].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+    const total = sales.reduce((sum, sale) => sum + Number(sale.total), 0);
+    const paid = sales.reduce((sum, sale) => sum + Number(sale.paid), 0);
+    const pending = sales.reduce((sum, sale) => sum + Number(sale.remaining), 0);
+    const paidCount = sales.filter(sale => this.saleStatusLabel(sale) === 'PAGADA').length;
+    const paymentsByMethod = this.paymentTotalsByMethod(sales);
+    let y = 14;
 
-    try {
-      for (const sale of this.sales()) {
-        const element = this.buildTicketElement(sale);
-        host.replaceChildren(element);
-        const canvas = await html2canvas(element, { backgroundColor: '#ffffff', scale: 2 });
-        const img = canvas.toDataURL('image/png');
-        const width = 190;
-        const height = Math.min(260, (canvas.height * width) / canvas.width);
-        if (pages > 0) {
-          pdf.addPage();
-        }
-        pdf.addImage(img, 'PNG', 10, 12, width, height);
-        pages += 1;
+    const footer = () => {
+      const pageCount = pdf.getNumberOfPages();
+      for (let page = 1; page <= pageCount; page += 1) {
+        pdf.setPage(page);
+        pdf.setFontSize(8);
+        pdf.setTextColor(120, 120, 120);
+        pdf.text(`Bar D'maced · Pagina ${page} de ${pageCount}`, margin, pageHeight - 8);
       }
-    } finally {
-      host.remove();
-    }
+    };
 
-    if (!pages) {
-      Swal.fire('Sin comprobantes', 'No se pudo preparar ningun comprobante para el PDF.', 'warning');
-      return;
+    const addHeader = () => {
+      pdf.setTextColor(20, 24, 22);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(18);
+      pdf.text("Bar D'maced", margin, y);
+      pdf.setFontSize(11);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`Reporte diario de ventas · ${this.formatReportDate(this.historyDate)}`, margin, y + 7);
+      pdf.text(`Generado: ${this.formatDateTime(new Date().toISOString())}`, margin, y + 13);
+      y += 24;
+    };
+
+    const addSummary = () => {
+      const cardWidth = (pageWidth - margin * 2 - 9) / 4;
+      const cards = [
+        ['Ventas', `${sales.length}`],
+        ['Pagadas', `${paidCount}`],
+        ['Total', this.money(total)],
+        ['Pendiente', this.money(pending)]
+      ];
+      cards.forEach(([label, value], index) => {
+        const x = margin + index * (cardWidth + 3);
+        pdf.setDrawColor(225, 216, 202);
+        pdf.setFillColor(253, 250, 244);
+        pdf.roundedRect(x, y, cardWidth, 18, 2, 2, 'FD');
+        pdf.setFontSize(8);
+        pdf.setTextColor(110, 110, 105);
+        pdf.text(label, x + 3, y + 6);
+        pdf.setFontSize(12);
+        pdf.setTextColor(20, 24, 22);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text(value, x + 3, y + 14);
+        pdf.setFont('helvetica', 'normal');
+      });
+      y += 25;
+
+      pdf.setFontSize(9);
+      pdf.setTextColor(80, 80, 76);
+      pdf.text(`Cobrado: ${this.money(paid)}   Efectivo: ${this.money(paymentsByMethod.EFECTIVO)}   Yape: ${this.money(paymentsByMethod.YAPE)}   Visa: ${this.money(paymentsByMethod.VISA)}`, margin, y);
+      y += 9;
+    };
+
+    const addTableHeader = () => {
+      pdf.setFillColor(34, 125, 96);
+      pdf.rect(margin, y, pageWidth - margin * 2, 8, 'F');
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(8);
+      pdf.setTextColor(255, 255, 255);
+      pdf.text('Venta', margin + 2, y + 5.5);
+      pdf.text('Hora / destino', margin + 18, y + 5.5);
+      pdf.text('Detalle', margin + 52, y + 5.5);
+      pdf.text('Pagos', margin + 123, y + 5.5);
+      pdf.text('Total', pageWidth - 42, y + 5.5);
+      pdf.text('Estado', pageWidth - 25, y + 5.5);
+      y += 8;
+      pdf.setFont('helvetica', 'normal');
+    };
+
+    const addPage = () => {
+      pdf.addPage();
+      y = 14;
+      addHeader();
+      addTableHeader();
+    };
+
+    addHeader();
+    addSummary();
+    addTableHeader();
+
+    sales.forEach(sale => {
+      const detailLines = pdf.splitTextToSize(this.saleDetailSummary(sale), 68);
+      const paymentLines = pdf.splitTextToSize(this.salePaymentSummary(sale), 29);
+      const rowHeight = Math.max(14, 5 + Math.max(detailLines.length, paymentLines.length) * 4);
+      if (y + rowHeight > pageHeight - 16) {
+        addPage();
+      }
+
+      pdf.setDrawColor(232, 225, 214);
+      pdf.setFillColor(this.saleStatusLabel(sale) === 'PAGADA' ? 248 : 255, 253, 248);
+      pdf.rect(margin, y, pageWidth - margin * 2, rowHeight, 'FD');
+      pdf.setFontSize(8);
+      pdf.setTextColor(20, 24, 22);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(`#${sale.id}`, margin + 2, y + 5);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(`${this.shortTime(sale.createdAt)}`, margin + 18, y + 5);
+      pdf.text(this.serviceLocationLabel(sale.serviceLocation, sale.takeaway), margin + 18, y + 9);
+      pdf.text(detailLines, margin + 52, y + 5);
+      pdf.text(paymentLines, margin + 123, y + 5);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(this.money(sale.total), pageWidth - 42, y + 5);
+      pdf.setTextColor(this.saleStatusLabel(sale) === 'PAGADA' ? 34 : 177, this.saleStatusLabel(sale) === 'PAGADA' ? 125 : 83, this.saleStatusLabel(sale) === 'PAGADA' ? 96 : 53);
+      pdf.text(this.saleStatusLabel(sale), pageWidth - 25, y + 5);
+      if (Number(sale.remaining) > 0) {
+        pdf.setTextColor(177, 83, 53);
+        pdf.setFont('helvetica', 'normal');
+        pdf.text(`Debe ${this.money(sale.remaining)}`, pageWidth - 42, y + 10);
+      }
+      y += rowHeight;
+    });
+
+    footer();
+    pdf.save(`bar-dmaced-reporte-${this.historyDate}.pdf`);
+  }
+
+  private paymentTotalsByMethod(sales: Sale[]): Record<PaymentMethod, number> {
+    return sales.reduce<Record<PaymentMethod, number>>((totals, sale) => {
+      sale.payments.forEach(payment => {
+        totals[payment.method] += Number(payment.amount);
+      });
+      return totals;
+    }, { EFECTIVO: 0, YAPE: 0, VISA: 0 });
+  }
+
+  private saleDetailSummary(sale: Sale): string {
+    return sale.items
+      .map(item => `${item.quantity}x ${item.productName}${item.note ? ` (${item.note})` : ''}`)
+      .join(' · ');
+  }
+
+  private salePaymentSummary(sale: Sale): string {
+    if (!sale.payments.length) {
+      return 'Sin pagos';
     }
-    pdf.save(`bar-dmaced-ventas-${this.historyDate}.pdf`);
+    return sale.payments.map(payment => `${payment.methodLabel} ${this.money(payment.amount)}`).join(' · ');
+  }
+
+  saleStatusLabel(sale: Sale): 'PENDIENTE' | 'PAGADA' {
+    return Number(sale.remaining) <= 0 ? 'PAGADA' : 'PENDIENTE';
   }
 
   private buildTicketElement(sale: Sale): HTMLElement {
@@ -674,6 +808,14 @@ export class App implements OnInit {
 
   shortDate(value: string): string {
     return new Intl.DateTimeFormat('es-PE', { weekday: 'short', day: '2-digit' }).format(new Date(`${value}T00:00:00`));
+  }
+
+  shortTime(value: string): string {
+    return new Intl.DateTimeFormat('es-PE', { hour: '2-digit', minute: '2-digit' }).format(new Date(value));
+  }
+
+  formatReportDate(value: string): string {
+    return new Intl.DateTimeFormat('es-PE', { dateStyle: 'full' }).format(new Date(`${value}T00:00:00`));
   }
 
   isPromoProduct(product: Product): boolean {

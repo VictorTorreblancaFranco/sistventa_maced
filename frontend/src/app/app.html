@@ -125,12 +125,18 @@
             <h2>Detalle</h2>
             <p>{{ cart().length }} productos en cuenta</p>
           </div>
-          <label class="location-select">
-            <span>Destino</span>
-            <select [ngModel]="serviceLocation" (ngModelChange)="updateServiceLocation($event)">
-              <option *ngFor="let option of serviceOptions" [value]="option.value">{{ option.label }}</option>
-            </select>
-          </label>
+          <div class="checkout-controls">
+            <label class="date-select">
+              <span>Fecha</span>
+              <input [(ngModel)]="saleDate" type="date">
+            </label>
+            <label class="location-select">
+              <span>Destino</span>
+              <select [ngModel]="serviceLocation" (ngModelChange)="updateServiceLocation($event)">
+                <option *ngFor="let option of serviceOptions" [value]="option.value">{{ option.label }}</option>
+              </select>
+            </label>
+          </div>
         </div>
 
         <div class="cart-list">
@@ -307,7 +313,7 @@
         <article class="sale-row" *ngFor="let sale of sales()" (click)="selectedSale.set(sale)" [class.active]="selectedSale()?.id === sale.id">
           <div>
             <strong>#{{ sale.id }} · {{ money(sale.total) }}</strong>
-            <small>{{ sale.createdAt | date:'short' }} · {{ sale.status }}</small>
+            <small>{{ sale.createdAt | date:'short' }} · {{ saleStatusLabel(sale) }}</small>
           </div>
           <b>{{ money(sale.remaining) }} pendiente</b>
           <div class="sale-actions">
@@ -364,6 +370,9 @@
             <input class="amount-input" [(ngModel)]="historyPaymentAmount" inputmode="decimal" placeholder="Monto" [disabled]="savingHistoryPayment() || sale.remaining <= 0">
             <button class="primary icon-only" (click)="addHistoryPayment()" [disabled]="savingHistoryPayment() || sale.remaining <= 0" title="Registrar pago">
               <svg lucideBanknote size="18"></svg>
+            </button>
+            <button class="secondary icon-only" (click)="completeSelectedSale()" [disabled]="savingHistoryPayment() || sale.remaining <= 0" title="Completar saldo pendiente">
+              <svg lucideCheckCircle2 size="18"></svg>
             </button>
           </div>
         </ng-container>

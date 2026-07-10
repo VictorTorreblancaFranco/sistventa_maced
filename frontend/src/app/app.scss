@@ -523,11 +523,18 @@ nav button.active {
   background: #f9f6ef;
 }
 
+.checkout-controls {
+  display: flex;
+  gap: 8px;
+}
+
+.date-select,
 .location-select {
   min-width: 150px;
   width: 150px;
 }
 
+.date-select span,
 .location-select span {
   color: var(--muted);
   font-size: 11px;

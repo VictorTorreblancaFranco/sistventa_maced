@@ -39,7 +39,7 @@ public class SaleService {
   @Transactional
   public SaleResponse create(SaleRequest request) {
     Sale sale = new Sale();
-    sale.setCreatedAt(LocalDateTime.now());
+    sale.setCreatedAt(resolveCreatedAt(request));
     applySaleRequest(sale, request);
     if (request.payments() != null) {
       request.payments().forEach(payment -> addPaymentEntity(sale, payment));
@@ -52,6 +52,7 @@ public class SaleService {
   @Transactional
   public SaleResponse update(Long saleId, SaleRequest request) {
     Sale sale = saleRepository.findById(saleId).orElseThrow();
+    updateSaleDate(sale, request);
     sale.getItems().clear();
     applySaleRequest(sale, request);
     recalculatePayments(sale);
@@ -125,6 +126,21 @@ public class SaleService {
       Product product = productRepository.findById(item.productId()).orElseThrow();
       return product.getCategory() == ProductCategory.TAPER || product.getCategory() == ProductCategory.VASO;
     });
+  }
+
+  private LocalDateTime resolveCreatedAt(SaleRequest request) {
+    if (request.saleDate() == null) {
+      return LocalDateTime.now();
+    }
+    return request.saleDate().atTime(LocalTime.now());
+  }
+
+  private void updateSaleDate(Sale sale, SaleRequest request) {
+    if (request.saleDate() == null) {
+      return;
+    }
+    LocalTime time = sale.getCreatedAt() == null ? LocalTime.now() : sale.getCreatedAt().toLocalTime();
+    sale.setCreatedAt(request.saleDate().atTime(time));
   }
 
   private void applySaleRequest(Sale sale, SaleRequest request) {

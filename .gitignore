@@ -11,6 +11,7 @@ frontend/.angular/
 # Local/runtime
 .env
 .env.*
+!.env.example
 tmp/
 work/
 outputs/
