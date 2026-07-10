@@ -145,6 +145,7 @@ export class App implements OnInit {
   saleDate = this.currentDateInput();
   dashboardDate = this.currentDateInput();
   historyDate = this.currentDateInput();
+  historySaleDates = signal<string[]>([]);
   historyRecent = false;
   loading = signal(false);
   savingSale = signal(false);
@@ -274,6 +275,7 @@ export class App implements OnInit {
     this.loadProducts();
     this.loadDashboard();
     this.loadSales();
+    this.loadHistorySaleDates();
   }
 
   loadCategories(): void {
@@ -304,6 +306,18 @@ export class App implements OnInit {
         this.selectedSale.set(sales[0]);
       }
     });
+  }
+
+  loadHistorySaleDates(): void {
+    this.http.get<Sale[]>(`${this.api}/sales/recent`, this.options()).subscribe(sales => {
+      const dates = [...new Set(sales.map(sale => sale.createdAt.slice(0, 10)))].sort().reverse();
+      this.historySaleDates.set(dates);
+    });
+  }
+
+  selectHistoryDate(date: string): void {
+    this.historyDate = date;
+    this.loadSales();
   }
 
   loadRecentSales(): void {

@@ -296,6 +296,17 @@
           </button>
         </div>
         <p class="history-mode" *ngIf="historyRecent">Mostrando últimas ventas guardadas.</p>
+        <div class="history-date-strip" *ngIf="historySaleDates().length">
+          <span>Fechas con ventas</span>
+          <button
+            class="date-chip"
+            *ngFor="let date of historySaleDates()"
+            [class.active]="!historyRecent && historyDate === date"
+            (click)="selectHistoryDate(date)"
+            type="button">
+            {{ shortDate(date) }}
+          </button>
+        </div>
         <article class="sale-row" *ngFor="let sale of sales()" (click)="selectedSale.set(sale)" [class.active]="selectedSale()?.id === sale.id">
           <div>
             <strong>#{{ sale.id }} · {{ money(sale.total) }}</strong>

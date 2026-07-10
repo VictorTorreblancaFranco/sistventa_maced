@@ -949,6 +949,38 @@ nav button.active {
   flex: 0 0 auto;
 }
 
+.history-date-strip {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 10px;
+}
+
+.history-date-strip span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+  margin-right: 2px;
+}
+
+.date-chip {
+  background: #f7f3ea;
+  border: 1px solid #e3d8c7;
+  border-radius: 999px;
+  color: #5f665f;
+  font-size: 12px;
+  font-weight: 800;
+  min-height: 28px;
+  padding: 0 10px;
+}
+
+.date-chip.active {
+  background: #1f7a63;
+  border-color: #1f7a63;
+  color: #fff;
+}
+
 .ticket {
   background: #fffdf8;
   border: 1px solid #e8dfd1;
