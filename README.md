@@ -55,7 +55,7 @@ No se suben credenciales de Neon al repositorio.
 El backend se ejecuta en tu computadora como imagen Docker y queda disponible en:
 
 ```text
-http://localhost:8080/api
+http://localhost:2080/api
 ```
 
 Comandos:
@@ -79,7 +79,7 @@ En Vercel importa el mismo repositorio y configura:
 Si no defines `API_URL`, el build usa:
 
 ```text
-http://localhost:8080/api
+http://localhost:2080/api
 ```
 
 Para usar el frontend de Vercel, primero levanta Docker localmente y luego abre la web

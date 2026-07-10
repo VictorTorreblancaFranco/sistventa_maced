@@ -1,3 +1,3 @@
 window.__env = {
-  apiUrl: "http://localhost:8080/api"
+  apiUrl: "http://localhost:2080/api"
 };

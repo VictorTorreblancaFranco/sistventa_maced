@@ -893,7 +893,7 @@ export class App implements OnInit {
   }
 
   private resolveApiUrl(): string {
-    return ((window as RuntimeWindow).__env?.apiUrl || 'http://localhost:8080/api').replace(/\/$/, '');
+    return ((window as RuntimeWindow).__env?.apiUrl || 'http://localhost:2080/api').replace(/\/$/, '');
   }
 
   private errorMessage(error: unknown): string {
