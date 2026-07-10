@@ -997,6 +997,11 @@ nav button.active {
   margin-top: 4px;
 }
 
+.dashboard-actions {
+  display: flex;
+  gap: 8px;
+}
+
 .metric {
   background: rgba(255, 255, 255, .9);
   border: 1px solid #e8dfd1;

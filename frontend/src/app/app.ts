@@ -22,6 +22,7 @@ import {
 } from '@lucide/angular';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
+import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 
 type Tab = 'sale' | 'products' | 'history' | 'dashboard';
@@ -704,6 +705,162 @@ export class App implements OnInit {
       return 'Sin pagos';
     }
     return sale.payments.map(payment => `${payment.methodLabel} ${this.money(payment.amount)}`).join(' · ');
+  }
+
+  downloadWeekPdf(data: Dashboard): void {
+    const dates = data.weekByDay.map(day => day.date);
+    forkJoin(dates.map(date => this.http.get<Sale[]>(`${this.api}/sales?date=${date}`, this.options()))).subscribe({
+      next: salesByDay => this.buildWeekPdf(data, dates, salesByDay),
+      error: error => Swal.fire('No se pudo generar', this.errorMessage(error), 'error')
+    });
+  }
+
+  private buildWeekPdf(data: Dashboard, dates: string[], salesByDay: Sale[][]): void {
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const margin = 12;
+    const allSales = salesByDay.flat();
+    const total = allSales.reduce((sum, sale) => sum + Number(sale.total), 0);
+    const paid = allSales.reduce((sum, sale) => sum + Number(sale.paid), 0);
+    const pending = allSales.reduce((sum, sale) => sum + Number(sale.remaining), 0);
+    const paidCount = allSales.filter(sale => this.saleStatusLabel(sale) === 'PAGADA').length;
+    const paymentsByMethod = this.paymentTotalsByMethod(allSales);
+    const weekStart = dates[0];
+    const weekEnd = dates[dates.length - 1];
+    let y = 14;
+
+    const footer = () => {
+      const pageCount = pdf.getNumberOfPages();
+      for (let page = 1; page <= pageCount; page += 1) {
+        pdf.setPage(page);
+        pdf.setFontSize(8);
+        pdf.setTextColor(120, 120, 120);
+        pdf.text(`Bar D'maced · Reporte semanal · Pagina ${page} de ${pageCount}`, margin, pageHeight - 8);
+      }
+    };
+
+    const ensureSpace = (height: number) => {
+      if (y + height <= pageHeight - 16) {
+        return;
+      }
+      pdf.addPage();
+      y = 14;
+    };
+
+    pdf.setTextColor(20, 24, 22);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(18);
+    pdf.text("Bar D'maced", margin, y);
+    pdf.setFontSize(11);
+    pdf.setFont('helvetica', 'normal');
+    pdf.text(`Reporte semanal · ${this.formatReportDate(weekStart)} al ${this.formatReportDate(weekEnd)}`, margin, y + 7);
+    pdf.text(`Generado: ${this.formatDateTime(new Date().toISOString())}`, margin, y + 13);
+    y += 24;
+
+    const cardWidth = (pageWidth - margin * 2 - 12) / 5;
+    [
+      ['Ventas', `${allSales.length}`],
+      ['Pagadas', `${paidCount}`],
+      ['Total', this.money(total)],
+      ['Cobrado', this.money(paid)],
+      ['Pendiente', this.money(pending)]
+    ].forEach(([label, value], index) => {
+      const x = margin + index * (cardWidth + 3);
+      pdf.setDrawColor(225, 216, 202);
+      pdf.setFillColor(253, 250, 244);
+      pdf.roundedRect(x, y, cardWidth, 18, 2, 2, 'FD');
+      pdf.setFontSize(7.5);
+      pdf.setTextColor(110, 110, 105);
+      pdf.text(label, x + 3, y + 6);
+      pdf.setFontSize(10);
+      pdf.setTextColor(20, 24, 22);
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(value, x + 3, y + 14);
+      pdf.setFont('helvetica', 'normal');
+    });
+    y += 26;
+
+    pdf.setFontSize(9);
+    pdf.setTextColor(80, 80, 76);
+    pdf.text(`Metodos: efectivo ${this.money(paymentsByMethod.EFECTIVO)} · Yape ${this.money(paymentsByMethod.YAPE)} · Visa ${this.money(paymentsByMethod.VISA)}`, margin, y);
+    y += 10;
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.setTextColor(20, 24, 22);
+    pdf.text('Resumen por dia', margin, y);
+    y += 5;
+
+    pdf.setFillColor(34, 125, 96);
+    pdf.rect(margin, y, pageWidth - margin * 2, 8, 'F');
+    pdf.setFontSize(8);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text('Dia', margin + 2, y + 5.5);
+    pdf.text('Ventas', margin + 43, y + 5.5);
+    pdf.text('Total', margin + 68, y + 5.5);
+    pdf.text('Cobrado', margin + 98, y + 5.5);
+    pdf.text('Pendiente', margin + 130, y + 5.5);
+    pdf.text('Estado', margin + 164, y + 5.5);
+    y += 8;
+
+    dates.forEach((date, index) => {
+      const daySales = salesByDay[index];
+      const dayTotal = daySales.reduce((sum, sale) => sum + Number(sale.total), 0);
+      const dayPaid = daySales.reduce((sum, sale) => sum + Number(sale.paid), 0);
+      const dayPending = daySales.reduce((sum, sale) => sum + Number(sale.remaining), 0);
+      ensureSpace(9);
+      pdf.setDrawColor(232, 225, 214);
+      pdf.setFillColor(255, 253, 248);
+      pdf.rect(margin, y, pageWidth - margin * 2, 9, 'FD');
+      pdf.setFont('helvetica', 'normal');
+      pdf.setFontSize(8);
+      pdf.setTextColor(20, 24, 22);
+      pdf.text(this.formatReportDate(date), margin + 2, y + 6);
+      pdf.text(`${daySales.length}`, margin + 45, y + 6);
+      pdf.text(this.money(dayTotal), margin + 68, y + 6);
+      pdf.text(this.money(dayPaid), margin + 98, y + 6);
+      pdf.text(this.money(dayPending), margin + 130, y + 6);
+      pdf.text(dayPending > 0 ? 'Con pendiente' : daySales.length ? 'Cerrado' : 'Sin ventas', margin + 164, y + 6);
+      y += 9;
+    });
+
+    y += 10;
+    ensureSpace(12);
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(11);
+    pdf.setTextColor(20, 24, 22);
+    pdf.text('Detalle compacto', margin, y);
+    y += 7;
+
+    dates.forEach((date, index) => {
+      const daySales = salesByDay[index].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+      if (!daySales.length) {
+        return;
+      }
+      ensureSpace(12);
+      pdf.setFont('helvetica', 'bold');
+      pdf.setFontSize(9);
+      pdf.setTextColor(34, 125, 96);
+      pdf.text(this.formatReportDate(date), margin, y);
+      y += 5;
+
+      daySales.forEach(sale => {
+        const line = `#${sale.id} · ${this.shortTime(sale.createdAt)} · ${this.serviceLocationLabel(sale.serviceLocation, sale.takeaway)} · ${this.saleDetailSummary(sale)} · Total ${this.money(sale.total)} · ${this.saleStatusLabel(sale)}`;
+        const lines = pdf.splitTextToSize(line, pageWidth - margin * 2);
+        const rowHeight = 3 + lines.length * 4;
+        ensureSpace(rowHeight);
+        pdf.setFont('helvetica', 'normal');
+        pdf.setFontSize(8);
+        pdf.setTextColor(35, 40, 37);
+        pdf.text(lines, margin + 2, y);
+        y += rowHeight;
+      });
+      y += 2;
+    });
+
+    footer();
+    pdf.save(`bar-dmaced-semana-${weekStart}-a-${weekEnd}.pdf`);
   }
 
   saleStatusLabel(sale: Sale): 'PENDIENTE' | 'PAGADA' {

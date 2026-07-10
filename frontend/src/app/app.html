@@ -387,10 +387,16 @@
             <h2>Dashboard</h2>
             <p>Resumen operativo de caja y ventas.</p>
           </div>
-          <button class="primary compact" (click)="tab.set('sale')">
-            <svg lucideReceiptText size="16"></svg>
-            Nueva cuenta
-          </button>
+          <div class="dashboard-actions">
+            <button class="secondary compact" (click)="downloadWeekPdf(data)" title="Descargar reporte semanal">
+              <svg lucideDownload size="16"></svg>
+              Semana
+            </button>
+            <button class="primary compact" (click)="tab.set('sale')">
+              <svg lucideReceiptText size="16"></svg>
+              Nueva cuenta
+            </button>
+          </div>
         </header>
         <article class="metric"><span>Ventas hoy</span><strong>{{ money(data.todaySales) }}</strong><small>{{ data.todayOrders }} cuentas</small></article>
         <article class="metric"><span>Cobrado hoy</span><strong>{{ money(dashboardTodayPaid(data)) }}</strong><small>Pagos registrados</small></article>
