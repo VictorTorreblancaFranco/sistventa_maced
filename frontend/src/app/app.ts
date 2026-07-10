@@ -144,6 +144,7 @@ export class App implements OnInit {
   dashboard = signal<Dashboard | null>(null);
   saleDate = this.currentDateInput();
   historyDate = this.currentDateInput();
+  historyRecent = false;
   loading = signal(false);
   savingSale = signal(false);
   savingHistoryPayment = signal(false);
@@ -293,7 +294,20 @@ export class App implements OnInit {
   }
 
   loadSales(): void {
+    this.historyRecent = false;
     this.http.get<Sale[]>(`${this.api}/sales?date=${this.historyDate}`, this.options()).subscribe(sales => {
+      this.sales.set(sales);
+      if (!sales.length) {
+        this.selectedSale.set(null);
+      } else if (!this.selectedSale() || !sales.some(sale => sale.id === this.selectedSale()?.id)) {
+        this.selectedSale.set(sales[0]);
+      }
+    });
+  }
+
+  loadRecentSales(): void {
+    this.historyRecent = true;
+    this.http.get<Sale[]>(`${this.api}/sales/recent`, this.options()).subscribe(sales => {
       this.sales.set(sales);
       if (!sales.length) {
         this.selectedSale.set(null);
@@ -581,7 +595,7 @@ export class App implements OnInit {
 
   async downloadDayPdf(): Promise<void> {
     if (!this.sales().length) {
-      Swal.fire('Sin ventas', 'No hay ventas para exportar en esta fecha.', 'info');
+      Swal.fire('Sin ventas', 'No hay ventas para exportar.', 'info');
       return;
     }
     const pdf = new jsPDF('p', 'mm', 'a4');

@@ -85,6 +85,11 @@ public class SaleService {
         .stream().map(this::toResponse).toList();
   }
 
+  @Transactional(readOnly = true)
+  public List<SaleResponse> recent() {
+    return saleRepository.findTop50ByOrderByCreatedAtDesc().stream().map(this::toResponse).toList();
+  }
+
   @Transactional
   public void delete(Long saleId) {
     saleRepository.deleteById(saleId);

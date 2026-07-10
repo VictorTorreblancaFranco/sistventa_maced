@@ -286,11 +286,16 @@
         </header>
         <div class="history-tools">
           <input class="date-input" [(ngModel)]="historyDate" type="date" (change)="loadSales()">
-          <button class="secondary compact" (click)="downloadDayPdf()" title="Descargar PDF del dia">
+          <button class="secondary compact" (click)="loadRecentSales()" title="Ver ultimas ventas">
+            <svg lucideHistory size="16"></svg>
+            Últimas
+          </button>
+          <button class="secondary compact" (click)="downloadDayPdf()" [disabled]="historyRecent" title="Descargar PDF del dia">
             <svg lucideDownload size="16"></svg>
             PDF
           </button>
         </div>
+        <p class="history-mode" *ngIf="historyRecent">Mostrando últimas ventas guardadas.</p>
         <article class="sale-row" *ngFor="let sale of sales()" (click)="selectedSale.set(sale)" [class.active]="selectedSale()?.id === sale.id">
           <div>
             <strong>#{{ sale.id }} · {{ money(sale.total) }}</strong>
@@ -306,7 +311,7 @@
             </button>
           </div>
         </article>
-        <p *ngIf="!sales().length" class="empty-state">No hay ventas registradas en esta fecha.</p>
+        <p *ngIf="!sales().length" class="empty-state">{{ historyRecent ? 'No hay ventas recientes.' : 'No hay ventas registradas en esta fecha.' }}</p>
       </div>
 
       <div class="panel">

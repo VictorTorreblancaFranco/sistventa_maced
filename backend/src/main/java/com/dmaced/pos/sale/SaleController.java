@@ -46,6 +46,11 @@ public class SaleController {
     return saleService.byDate(date);
   }
 
+  @GetMapping("/recent")
+  List<SaleResponse> recent() {
+    return saleService.recent();
+  }
+
   @PostMapping("/{id}/payments")
   SaleResponse addPayment(@PathVariable Long id, @Valid @RequestBody PaymentRequest request) {
     return saleService.addPayment(id, request);

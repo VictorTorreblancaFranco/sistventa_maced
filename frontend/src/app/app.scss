@@ -931,6 +931,13 @@ nav button.active {
   margin-bottom: 2px;
 }
 
+.history-mode {
+  color: var(--brand);
+  font-size: 13px;
+  font-weight: 800;
+  margin: 0 0 8px;
+}
+
 .history-tools {
   align-items: center;
   display: flex;
