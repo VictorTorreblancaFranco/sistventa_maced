@@ -29,6 +29,7 @@ type Tab = 'sale' | 'products' | 'history' | 'dashboard';
 type PaymentMethod = 'EFECTIVO' | 'YAPE' | 'VISA';
 type ProductStatusFilter = 'ACTIVE' | 'INACTIVE' | 'DELETED' | 'ALL';
 type RuntimeWindow = Window & { __env?: { apiUrl?: string } };
+type AuthResponse = { token: string; username: string; expiresAt: string };
 
 interface Category {
   code: string;
@@ -126,8 +127,10 @@ interface Dashboard {
 })
 export class App implements OnInit {
   private readonly api = this.resolveApiUrl();
+  private refreshTimer: ReturnType<typeof setTimeout> | null = null;
 
   token = localStorage.getItem('bar-dmaced-token') || '';
+  tokenExpiresAt = localStorage.getItem('bar-dmaced-token-expires-at') || '';
   username = 'admin';
   password = 'Admin123@';
   tab = signal<Tab>('dashboard');
@@ -222,19 +225,18 @@ export class App implements OnInit {
 
   ngOnInit(): void {
     if (this.token) {
-      this.loadAll();
+      this.refreshSession(true);
     }
   }
 
   login(): void {
     this.loading.set(true);
-    this.http.post<{ token: string }>(`${this.api}/auth/login`, {
+    this.http.post<AuthResponse>(`${this.api}/auth/login`, {
       username: this.username,
       password: this.password
     }).subscribe({
       next: response => {
-        this.token = response.token;
-        localStorage.setItem('bar-dmaced-token', response.token);
+        this.storeSession(response);
         this.loadAll();
       },
       error: () => Swal.fire('Acceso denegado', 'Usuario o contraseña incorrectos.', 'error'),
@@ -244,7 +246,25 @@ export class App implements OnInit {
 
   logout(): void {
     this.token = '';
+    this.tokenExpiresAt = '';
+    this.clearRefreshTimer();
     localStorage.removeItem('bar-dmaced-token');
+    localStorage.removeItem('bar-dmaced-token-expires-at');
+  }
+
+  refreshSession(loadAfterRefresh = false): void {
+    if (!this.token) {
+      return;
+    }
+    this.http.post<AuthResponse>(`${this.api}/auth/refresh`, {}, this.options()).subscribe({
+      next: response => {
+        this.storeSession(response);
+        if (loadAfterRefresh) {
+          this.loadAll();
+        }
+      },
+      error: () => this.logout()
+    });
   }
 
   loadAll(): void {
@@ -1053,6 +1073,27 @@ export class App implements OnInit {
     return {
       headers: new HttpHeaders({ Authorization: `Bearer ${this.token}` })
     };
+  }
+
+  private storeSession(response: AuthResponse): void {
+    this.token = response.token;
+    this.tokenExpiresAt = response.expiresAt;
+    localStorage.setItem('bar-dmaced-token', response.token);
+    localStorage.setItem('bar-dmaced-token-expires-at', response.expiresAt);
+    this.scheduleTokenRefresh(response.expiresAt);
+  }
+
+  private scheduleTokenRefresh(expiresAt: string): void {
+    this.clearRefreshTimer();
+    const refreshInMs = Math.max(30_000, new Date(expiresAt).getTime() - Date.now() - 60_000);
+    this.refreshTimer = setTimeout(() => this.refreshSession(), refreshInMs);
+  }
+
+  private clearRefreshTimer(): void {
+    if (this.refreshTimer) {
+      clearTimeout(this.refreshTimer);
+      this.refreshTimer = null;
+    }
   }
 
   private resolveApiUrl(): string {

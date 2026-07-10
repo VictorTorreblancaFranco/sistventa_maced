@@ -2,6 +2,7 @@ package com.dmaced.pos.auth;
 
 import jakarta.validation.Valid;
 import java.time.Instant;
+import org.springframework.security.core.Authentication;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -36,5 +37,15 @@ public class AuthController {
     }
     String token = tokenService.issue(adminUser);
     return ResponseEntity.ok(new AuthResponse(token, adminUser, Instant.now().plusSeconds(TokenService.TTL_SECONDS)));
+  }
+
+  @PostMapping("/refresh")
+  ResponseEntity<AuthResponse> refresh(Authentication authentication) {
+    if (authentication == null || !authentication.isAuthenticated()) {
+      return ResponseEntity.status(401).build();
+    }
+    String username = authentication.getName();
+    String token = tokenService.issue(username);
+    return ResponseEntity.ok(new AuthResponse(token, username, Instant.now().plusSeconds(TokenService.TTL_SECONDS)));
   }
 }
