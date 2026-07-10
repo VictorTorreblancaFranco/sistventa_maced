@@ -373,9 +373,10 @@
         <header class="dashboard-head">
           <div>
             <h2>Dashboard</h2>
-            <p>Resumen operativo de caja y ventas.</p>
+            <p>Resumen operativo de caja y ventas por fecha.</p>
           </div>
           <div class="dashboard-actions">
+            <input class="date-input" [(ngModel)]="dashboardDate" type="date" (change)="loadDashboard()" title="Fecha del dashboard">
             <button class="secondary compact" (click)="downloadWeekPdf(data)" title="Descargar reporte semanal">
               <svg lucideDownload size="16"></svg>
               Semana
@@ -386,8 +387,8 @@
             </button>
           </div>
         </header>
-        <article class="metric"><span>Ventas hoy</span><strong>{{ money(data.todaySales) }}</strong><small>{{ data.todayOrders }} cuentas</small></article>
-        <article class="metric"><span>Cobrado hoy</span><strong>{{ money(dashboardTodayPaid(data)) }}</strong><small>Pagos registrados</small></article>
+        <article class="metric"><span>Ventas del dia</span><strong>{{ money(data.todaySales) }}</strong><small>{{ data.todayOrders }} cuentas</small></article>
+        <article class="metric"><span>Cobrado del dia</span><strong>{{ money(dashboardTodayPaid(data)) }}</strong><small>Pagos registrados</small></article>
         <article class="metric"><span>Ticket promedio</span><strong>{{ money(dashboardAverageTicket(data)) }}</strong><small>Promedio del dia</small></article>
         <article class="metric"><span>Ventas semana</span><strong>{{ money(data.weekSales) }}</strong><small>{{ dashboardWeekOrders(data) }} cuentas</small></article>
         <article class="metric"><span>Ventas mes</span><strong>{{ money(data.monthSales) }}</strong><small>Mes actual</small></article>

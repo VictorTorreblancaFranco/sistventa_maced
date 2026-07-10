@@ -62,7 +62,7 @@ public class SaleController {
   }
 
   @GetMapping("/dashboard")
-  DashboardResponse dashboard() {
-    return saleService.dashboard();
+  DashboardResponse dashboard(@RequestParam(required = false) LocalDate date) {
+    return saleService.dashboard(date);
   }
 }

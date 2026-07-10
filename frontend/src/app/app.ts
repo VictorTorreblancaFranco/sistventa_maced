@@ -143,6 +143,7 @@ export class App implements OnInit {
   selectedSale = signal<Sale | null>(null);
   dashboard = signal<Dashboard | null>(null);
   saleDate = this.currentDateInput();
+  dashboardDate = this.currentDateInput();
   historyDate = this.currentDateInput();
   historyRecent = false;
   loading = signal(false);
@@ -288,7 +289,7 @@ export class App implements OnInit {
   }
 
   loadDashboard(): void {
-    this.http.get<Dashboard>(`${this.api}/sales/dashboard`, this.options()).subscribe(dashboard => {
+    this.http.get<Dashboard>(`${this.api}/sales/dashboard?date=${this.dashboardDate}`, this.options()).subscribe(dashboard => {
       this.dashboard.set(dashboard);
     });
   }
@@ -991,8 +992,7 @@ export class App implements OnInit {
   }
 
   dashboardTodayPaid(data: Dashboard): number {
-    const today = this.currentDateInput();
-    return Number(data.weekByDay.find(day => day.date === today)?.paid || 0);
+    return Number(data.weekByDay.find(day => day.date === this.dashboardDate)?.paid || 0);
   }
 
   dashboardBestDay(data: Dashboard): string {

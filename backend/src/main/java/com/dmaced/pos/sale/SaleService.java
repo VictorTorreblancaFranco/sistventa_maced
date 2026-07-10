@@ -96,35 +96,37 @@ public class SaleService {
   }
 
   @Transactional(readOnly = true)
-  public DashboardResponse dashboard() {
-    LocalDate today = LocalDate.now(APP_ZONE);
-    LocalDate weekStart = today.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
-    LocalDate monthStart = today.withDayOfMonth(1);
+  public DashboardResponse dashboard(LocalDate referenceDate) {
+    LocalDate reportDate = referenceDate == null ? LocalDate.now(APP_ZONE) : referenceDate;
+    LocalDate weekStart = reportDate.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+    LocalDate monthStart = reportDate.withDayOfMonth(1);
 
     List<Sale> monthSales = saleRepository.findByCreatedAtBetweenOrderByCreatedAtDesc(
-        monthStart.atStartOfDay(), today.atTime(LocalTime.MAX));
+        monthStart.atStartOfDay(), reportDate.atTime(LocalTime.MAX));
     List<Sale> weekSales = monthSales.stream()
         .filter(sale -> !sale.getCreatedAt().toLocalDate().isBefore(weekStart))
         .toList();
-    List<Sale> todaySales = monthSales.stream()
-        .filter(sale -> sale.getCreatedAt().toLocalDate().equals(today))
+    List<Sale> daySales = monthSales.stream()
+        .filter(sale -> sale.getCreatedAt().toLocalDate().equals(reportDate))
         .toList();
+    List<Sale> weekPayments = saleRepository.findDistinctByPaymentsPaidAtBetweenOrderByCreatedAtDesc(
+        weekStart.atStartOfDay(), reportDate.atTime(LocalTime.MAX));
 
     List<DailySummary> weekByDay = new ArrayList<>();
     for (int i = 0; i < 7; i++) {
       LocalDate date = weekStart.plusDays(i);
-      List<Sale> daySales = weekSales.stream()
+      List<Sale> salesForWeekDay = weekSales.stream()
           .filter(sale -> sale.getCreatedAt().toLocalDate().equals(date))
           .toList();
-      weekByDay.add(new DailySummary(date, sumTotal(daySales), sumPaid(daySales), daySales.size()));
+      weekByDay.add(new DailySummary(date, sumTotal(salesForWeekDay), sumPaymentsOnDate(weekPayments, date), salesForWeekDay.size()));
     }
 
     return new DashboardResponse(
-        sumTotal(todaySales),
+        sumTotal(daySales),
         sumTotal(weekSales),
         sumTotal(monthSales),
         monthSales.stream().map(Sale::getRemaining).reduce(ZERO, BigDecimal::add),
-        todaySales.size(),
+        daySales.size(),
         weekByDay);
   }
 
@@ -284,6 +286,14 @@ public class SaleService {
 
   private BigDecimal sumPaid(List<Sale> sales) {
     return sales.stream().map(Sale::getPaid).reduce(ZERO, BigDecimal::add);
+  }
+
+  private BigDecimal sumPaymentsOnDate(List<Sale> sales, LocalDate date) {
+    return sales.stream()
+        .flatMap(sale -> sale.getPayments().stream())
+        .filter(payment -> payment.getPaidAt() != null && payment.getPaidAt().toLocalDate().equals(date))
+        .map(SalePayment::getAmount)
+        .reduce(ZERO, BigDecimal::add);
   }
 
   private SaleResponse toResponse(Sale sale) {
