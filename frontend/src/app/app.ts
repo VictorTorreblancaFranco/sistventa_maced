@@ -1452,10 +1452,11 @@ export class App implements OnInit {
       employees: this.http.get<Employee[]>(`${this.api}/staff/employees`, this.options())
     })).subscribe({
       next: ({ roles, employees }) => {
-        this.staffRoles.set(roles);
+        const uniqueRoles = this.uniqueStaffRoles(roles);
+        this.staffRoles.set(uniqueRoles);
         this.employees.set(employees);
-        if (!this.employeeForm.roleId && roles.length) {
-          this.employeeForm.roleId = roles[0].id;
+        if (!this.employeeForm.roleId && uniqueRoles.length) {
+          this.employeeForm.roleId = uniqueRoles[0].id;
         }
         if (!this.selectedEmployeeId() && employees.length) {
           this.selectEmployee(employees[0]);
@@ -1964,6 +1965,18 @@ export class App implements OnInit {
 
   activeEmployeesCount(): number {
     return this.employees().filter(employee => employee.active).length;
+  }
+
+  private uniqueStaffRoles(roles: StaffRole[]): StaffRole[] {
+    const seen = new Set<string>();
+    return roles.filter(role => {
+      const key = this.normalize(role.name);
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
   }
 
   private sortSchedule(schedule: StaffSchedule[]): StaffSchedule[] {

@@ -19,7 +19,10 @@ import java.time.LocalTime;
 import java.time.temporal.TemporalAdjusters;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -43,6 +46,7 @@ public class StaffService {
 
   @Transactional
   public void seedDefaults() {
+    mergeDuplicateRoles();
     List.of("Mozo", "Bartender", "Cocinero").forEach(name -> {
       if (!roleRepository.existsByNameIgnoreCase(name)) {
         StaffRole role = new StaffRole();
@@ -54,14 +58,29 @@ public class StaffService {
 
   @Transactional(readOnly = true)
   public List<RoleResponse> roles() {
-    return roleRepository.findAllByOrderByNameAsc().stream().map(this::toRole).toList();
+    return roleRepository.findAllByOrderByNameAsc().stream()
+        .collect(LinkedHashMap<String, StaffRole>::new,
+            (roles, role) -> roles.putIfAbsent(normalizeRole(role.getName()), role),
+            Map::putAll)
+        .values()
+        .stream()
+        .map(this::toRole)
+        .toList();
   }
 
   @Transactional
   public RoleResponse createRole(RoleRequest request) {
-    StaffRole role = new StaffRole();
-    role.setName(request.name().trim());
-    return toRole(roleRepository.save(role));
+    String name = clean(request.name());
+    if (name == null) {
+      throw new IllegalArgumentException("El nombre del rol es obligatorio.");
+    }
+    return roleRepository.findFirstByNameIgnoreCaseOrderByIdAsc(name)
+        .map(this::toRole)
+        .orElseGet(() -> {
+          StaffRole role = new StaffRole();
+          role.setName(name);
+          return toRole(roleRepository.save(role));
+        });
   }
 
   @Transactional(readOnly = true)
@@ -208,6 +227,26 @@ public class StaffService {
 
   private RoleResponse toRole(StaffRole role) {
     return new RoleResponse(role.getId(), role.getName(), role.isActive());
+  }
+
+  private void mergeDuplicateRoles() {
+    Map<String, StaffRole> canonicalRoles = new LinkedHashMap<>();
+    for (StaffRole role : roleRepository.findAllByOrderByNameAsc()) {
+      String key = normalizeRole(role.getName());
+      StaffRole canonical = canonicalRoles.get(key);
+      if (canonical == null) {
+        role.setName(clean(role.getName()));
+        canonicalRoles.put(key, role);
+        continue;
+      }
+      employeeRepository.findByRoleId(role.getId()).forEach(employee -> employee.setRole(canonical));
+      roleRepository.delete(role);
+    }
+  }
+
+  private String normalizeRole(String value) {
+    String cleaned = clean(value);
+    return cleaned == null ? "" : cleaned.toLowerCase(Locale.ROOT);
   }
 
   private EmployeeResponse toEmployee(Employee employee) {
