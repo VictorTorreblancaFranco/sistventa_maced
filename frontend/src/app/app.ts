@@ -1448,28 +1448,32 @@ export class App implements OnInit {
   loadStaff(): void {
     forkJoin({
       roles: this.http.get<StaffRole[]>(`${this.api}/staff/roles`, this.options()),
-      employees: this.http.get<Employee[]>(`${this.api}/staff/employees`, this.options()),
-      week: this.http.get<StaffWeek>(`${this.api}/staff/week?date=${this.staffWeekDate}`, this.options())
+      employees: this.http.get<Employee[]>(`${this.api}/staff/employees`, this.options())
     }).subscribe({
-      next: ({ roles, employees, week }) => {
+      next: ({ roles, employees }) => {
         this.staffRoles.set(roles);
         this.employees.set(employees);
-        this.staffWeek.set(week);
         if (!this.employeeForm.roleId && roles.length) {
           this.employeeForm.roleId = roles[0].id;
         }
         if (!this.selectedEmployeeId() && employees.length) {
           this.selectEmployee(employees[0]);
         }
+        this.loadStaffWeek(false);
       },
       error: error => Swal.fire('No se pudo cargar personal', this.errorMessage(error), 'error')
     });
   }
 
-  loadStaffWeek(): void {
+  loadStaffWeek(showError = true): void {
     this.http.get<StaffWeek>(`${this.api}/staff/week?date=${this.staffWeekDate}`, this.options()).subscribe({
       next: week => this.staffWeek.set(week),
-      error: error => Swal.fire('No se pudo cargar horario', this.errorMessage(error), 'error')
+      error: error => {
+        this.staffWeek.set(null);
+        if (showError) {
+          Swal.fire('No se pudo cargar horario', this.errorMessage(error), 'error');
+        }
+      }
     });
   }
 

@@ -52,6 +52,7 @@ public class StaffService {
     });
   }
 
+  @Transactional(readOnly = true)
   public List<RoleResponse> roles() {
     return roleRepository.findAllByOrderByNameAsc().stream().map(this::toRole).toList();
   }
@@ -63,6 +64,7 @@ public class StaffService {
     return toRole(roleRepository.save(role));
   }
 
+  @Transactional(readOnly = true)
   public List<EmployeeResponse> employees() {
     return employeeRepository.findAllByOrderByActiveDescNameAsc().stream().map(this::toEmployee).toList();
   }
@@ -92,6 +94,7 @@ public class StaffService {
     return toEmployee(employee);
   }
 
+  @Transactional(readOnly = true)
   public List<ScheduleResponse> schedule(Long employeeId) {
     return scheduleRepository.findByEmployeeId(employeeId).stream()
         .sorted(Comparator.comparing(EmployeeSchedule::getDayOfWeek))
@@ -113,6 +116,7 @@ public class StaffService {
     return toSchedule(scheduleRepository.save(schedule));
   }
 
+  @Transactional(readOnly = true)
   public List<ExceptionResponse> exceptions(Long employeeId) {
     return exceptionRepository.findByEmployeeId(employeeId).stream()
         .sorted(Comparator.comparing(EmployeeException::getStartDate).reversed())
@@ -141,6 +145,7 @@ public class StaffService {
     exceptionRepository.deleteById(id);
   }
 
+  @Transactional(readOnly = true)
   public StaffWeekResponse week(LocalDate date) {
     LocalDate weekStart = (date == null ? LocalDate.now() : date).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
     LocalDate weekEnd = weekStart.plusDays(6);
