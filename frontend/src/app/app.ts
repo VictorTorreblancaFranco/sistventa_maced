@@ -1477,9 +1477,9 @@ export class App implements OnInit {
     Swal.fire({
       title: 'Crear rol',
       html: `
-        <div class="modal-form">
+        <div class="pos-modal-form">
           <label>Nombre del rol</label>
-          <input id="staff-role-name" class="swal2-input" placeholder="Anfitrion, cajero...">
+          <input id="staff-role-name" placeholder="Anfitrion, cajero...">
         </div>
       `,
       showCancelButton: true,
@@ -1522,17 +1522,12 @@ export class App implements OnInit {
     Swal.fire({
       title: employee ? 'Editar colaborador' : 'Agregar colaborador',
       html: `
-        <div class="modal-form">
+        <div class="pos-modal-form">
           <label>Nombre</label>
-          <input id="employee-name" class="swal2-input" value="${this.escapeHtml(employee?.name || '')}" placeholder="Nombre del colaborador">
+          <input id="employee-name" value="${this.escapeHtml(employee?.name || '')}" placeholder="Nombre del colaborador">
           <label>Rol</label>
-          <select id="employee-role" class="swal2-select">${roleOptions}</select>
-          <label class="modal-check">
-            <input id="employee-active" type="checkbox" ${employee?.active !== false ? 'checked' : ''}>
-            Activo
-          </label>
-          <label>Motivo si esta desactivado</label>
-          <textarea id="employee-reason" class="swal2-textarea" placeholder="Motivo">${this.escapeHtml(employee?.inactiveReason || '')}</textarea>
+          <select id="employee-role">${roleOptions}</select>
+          <small>Se creara activo. Para desactivarlo usa el boton de estado en la lista.</small>
         </div>
       `,
       showCancelButton: true,
@@ -1541,17 +1536,16 @@ export class App implements OnInit {
       preConfirm: () => {
         const name = (document.getElementById('employee-name') as HTMLInputElement)?.value.trim();
         const roleId = Number((document.getElementById('employee-role') as HTMLSelectElement)?.value);
-        const active = (document.getElementById('employee-active') as HTMLInputElement)?.checked;
-        const inactiveReason = (document.getElementById('employee-reason') as HTMLTextAreaElement)?.value.trim();
         if (!name || !roleId) {
           Swal.showValidationMessage('Ingresa nombre y rol.');
           return false;
         }
-        if (!active && !inactiveReason) {
-          Swal.showValidationMessage('Ingresa el motivo si esta desactivado.');
-          return false;
-        }
-        return { name, roleId, active, inactiveReason };
+        return {
+          name,
+          roleId,
+          active: employee?.active ?? true,
+          inactiveReason: employee?.inactiveReason || ''
+        };
       }
     }).then(result => {
       if (!result.isConfirmed || !result.value) {
@@ -1566,6 +1560,95 @@ export class App implements OnInit {
           this.loadStaff();
           this.selectEmployee(saved);
           Swal.fire('Colaborador guardado', 'El horario ya puede administrarse.', 'success');
+        },
+        error: error => Swal.fire('No se pudo guardar', this.errorMessage(error), 'error')
+      }).add(() => this.savingStaff.set(false));
+    });
+  }
+
+  openExceptionDialog(exception?: StaffException): void {
+    const employee = this.selectedEmployee();
+    const employees = this.employees().filter(item => item.active || item.id === exception?.employeeId);
+    if (!employees.length) {
+      Swal.fire('Sin colaboradores', 'Agrega un colaborador activo para registrar excepciones.', 'info');
+      return;
+    }
+    const selectedEmployeeId = exception?.employeeId || employee?.id || employees[0].id;
+    const employeeOptions = employees
+      .map(item => `<option value="${item.id}" ${item.id === selectedEmployeeId ? 'selected' : ''}>${this.escapeHtml(item.name)}</option>`)
+      .join('');
+    const typeOptions = this.staffExceptionTypes()
+      .map(type => `<option value="${type.value}" ${type.value === (exception?.type || 'PERMISO') ? 'selected' : ''}>${type.label}</option>`)
+      .join('');
+    Swal.fire({
+      title: exception ? 'Editar excepción' : 'Agregar excepción',
+      html: `
+        <div class="pos-modal-form compact-modal-form">
+          <label>Colaborador</label>
+          <select id="exception-employee">${employeeOptions}</select>
+          <label>Tipo</label>
+          <select id="exception-type">${typeOptions}</select>
+          <div class="modal-grid">
+            <div>
+              <label>Desde</label>
+              <input id="exception-start" type="date" value="${exception?.startDate || this.currentDateInput()}">
+            </div>
+            <div>
+              <label>Hasta</label>
+              <input id="exception-end" type="date" value="${exception?.endDate || this.currentDateInput()}">
+            </div>
+          </div>
+          <label>Hora si es cambio de turno</label>
+          <input id="exception-time" type="time" value="${exception?.startTime || '18:00'}">
+          <label>Nota</label>
+          <textarea id="exception-note" placeholder="Motivo o detalle">${this.escapeHtml(exception?.note || '')}</textarea>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Guardar',
+      cancelButtonText: 'Cancelar',
+      preConfirm: () => {
+        const employeeId = Number((document.getElementById('exception-employee') as HTMLSelectElement)?.value);
+        const type = (document.getElementById('exception-type') as HTMLSelectElement)?.value as StaffExceptionType;
+        const startDate = (document.getElementById('exception-start') as HTMLInputElement)?.value;
+        const endDate = (document.getElementById('exception-end') as HTMLInputElement)?.value;
+        const startTime = (document.getElementById('exception-time') as HTMLInputElement)?.value;
+        const note = (document.getElementById('exception-note') as HTMLTextAreaElement)?.value.trim();
+        if (!employeeId || !type || !startDate || !endDate) {
+          Swal.showValidationMessage('Completa colaborador, tipo y fechas.');
+          return false;
+        }
+        if (type === 'CAMBIO_TURNO' && !startTime) {
+          Swal.showValidationMessage('Ingresa la nueva hora de entrada.');
+          return false;
+        }
+        return {
+          employeeId,
+          type,
+          startDate,
+          endDate,
+          startTime: type === 'CAMBIO_TURNO' ? startTime : null,
+          note
+        };
+      }
+    }).then(result => {
+      if (!result.isConfirmed || !result.value) {
+        return;
+      }
+      this.savingStaff.set(true);
+      const request = exception
+        ? this.http.put<StaffException>(`${this.api}/staff/exceptions/${exception.id}`, result.value, this.options())
+        : this.http.post<StaffException>(`${this.api}/staff/exceptions`, result.value, this.options());
+      request.subscribe({
+        next: saved => {
+          const selected = this.employees().find(item => item.id === saved.employeeId);
+          if (selected) {
+            this.selectEmployee(selected);
+          } else if (this.selectedEmployeeId()) {
+            this.loadEmployeeDetails(this.selectedEmployeeId()!);
+          }
+          this.loadStaffWeek();
+          Swal.fire('Excepción guardada', 'El horario semanal fue actualizado.', 'success');
         },
         error: error => Swal.fire('No se pudo guardar', this.errorMessage(error), 'error')
       }).add(() => this.savingStaff.set(false));

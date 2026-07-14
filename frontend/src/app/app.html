@@ -545,6 +545,9 @@
               <h2>Horario base</h2>
               <p>{{ employee.name }}</p>
             </div>
+            <button class="secondary icon-action" type="button" (click)="openExceptionDialog()" title="Agregar excepción">
+              <svg lucidePlus size="14"></svg>
+            </button>
           </header>
           <div class="schedule-day-editor" *ngFor="let day of employeeSchedule()">
             <label class="check">
@@ -555,36 +558,16 @@
           </div>
         </section>
 
-        <form class="panel exception-form" (ngSubmit)="saveException()">
+        <section class="panel exceptions-list" *ngIf="employeeExceptions().length">
           <header class="section-head tight">
             <div>
-              <h2>{{ exceptionForm.id ? 'Editar excepción' : 'Excepción' }}</h2>
+              <h2>Excepciones</h2>
               <p>Permisos, faltas, cambios y vacaciones.</p>
             </div>
+            <button class="secondary icon-action" type="button" (click)="openExceptionDialog()" title="Agregar excepción">
+              <svg lucidePlus size="14"></svg>
+            </button>
           </header>
-          <label>Colaborador
-            <select [(ngModel)]="exceptionForm.employeeId" name="exceptionEmployee" required>
-              <option *ngFor="let employee of employees()" [ngValue]="employee.id">{{ employee.name }}</option>
-            </select>
-          </label>
-          <label>Tipo
-            <select [(ngModel)]="exceptionForm.type" name="exceptionType" required>
-              <option *ngFor="let type of staffExceptionTypes()" [ngValue]="type.value">{{ type.label }}</option>
-            </select>
-          </label>
-          <div class="date-pair">
-            <label>Desde<input [(ngModel)]="exceptionForm.startDate" name="exceptionStart" type="date"></label>
-            <label>Hasta<input [(ngModel)]="exceptionForm.endDate" name="exceptionEnd" type="date"></label>
-          </div>
-          <label *ngIf="exceptionForm.type === 'CAMBIO_TURNO'">Nueva entrada<input [(ngModel)]="exceptionForm.startTime" name="exceptionStartTime" type="time"></label>
-          <label>Nota<input [(ngModel)]="exceptionForm.note" name="exceptionNote" placeholder="Motivo o detalle"></label>
-          <div class="form-actions">
-            <button class="primary" type="submit" [disabled]="savingStaff()"><svg lucideSave size="16"></svg>Guardar</button>
-            <button class="secondary" type="button" (click)="resetExceptionForm()">Limpiar</button>
-          </div>
-        </form>
-
-        <section class="panel exceptions-list" *ngIf="employeeExceptions().length">
           <article class="exception-card" *ngFor="let exception of employeeExceptions()">
             <div>
               <strong>{{ exception.typeLabel }}</strong>
@@ -592,7 +575,7 @@
               <em *ngIf="exception.note">{{ exception.note }}</em>
             </div>
             <div class="sale-actions">
-              <button class="secondary icon-action" type="button" (click)="editException(exception)" title="Editar">
+              <button class="secondary icon-action" type="button" (click)="openExceptionDialog(exception)" title="Editar">
                 <svg lucidePencil size="14"></svg>
               </button>
               <button class="danger icon-action" type="button" (click)="deleteException(exception)" title="Eliminar">

@@ -9,8 +9,92 @@ body {
   overflow: hidden;
 }
 
+.swal2-popup {
+  border-radius: 14px !important;
+  padding: 22px !important;
+}
+
+.swal2-title {
+  color: #17211e !important;
+  font-size: 22px !important;
+}
+
+.pos-modal-form {
+  display: grid;
+  gap: 10px;
+  margin: 8px auto 0;
+  max-width: 420px;
+  text-align: left;
+}
+
+.pos-modal-form label {
+  color: #65736e;
+  font-size: 12px;
+  font-weight: 800;
+  margin-top: 2px;
+}
+
+.pos-modal-form input,
+.pos-modal-form select,
+.pos-modal-form textarea {
+  background: #fffdf8;
+  border: 1px solid #e3ddd2;
+  border-radius: 8px;
+  color: #202321;
+  font: inherit;
+  font-size: 14px;
+  margin: 0;
+  min-height: 38px;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.pos-modal-form textarea {
+  min-height: 74px;
+  padding: 10px;
+  resize: vertical;
+}
+
+.pos-modal-form small {
+  background: #f3f7f4;
+  border: 1px solid #dce8e2;
+  border-radius: 8px;
+  color: #25745f;
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.35;
+  padding: 9px 10px;
+}
+
+.modal-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.modal-grid > div {
+  display: grid;
+  gap: 8px;
+}
+
+.swal2-confirm {
+  background: #25745f !important;
+  border-radius: 8px !important;
+}
+
+.swal2-cancel {
+  border-radius: 8px !important;
+}
+
 @media (max-width: 1000px) {
   body {
     overflow: auto;
+  }
+}
+
+@media (max-width: 520px) {
+  .modal-grid {
+    grid-template-columns: 1fr;
   }
 }
