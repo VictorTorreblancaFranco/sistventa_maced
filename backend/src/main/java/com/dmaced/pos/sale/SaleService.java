@@ -74,6 +74,27 @@ public class SaleService {
     return toResponse(sale);
   }
 
+  @Transactional
+  public SaleResponse updatePayment(Long saleId, Long paymentId, PaymentRequest request) {
+    Sale sale = saleRepository.findById(saleId).orElseThrow();
+    SalePayment payment = findPayment(sale, paymentId);
+    payment.setMethod(request.method());
+    payment.setAmount(request.amount());
+    recalculatePayments(sale);
+    rejectOverpayment(sale);
+    return toResponse(sale);
+  }
+
+  @Transactional
+  public SaleResponse deletePayment(Long saleId, Long paymentId) {
+    Sale sale = saleRepository.findById(saleId).orElseThrow();
+    SalePayment payment = findPayment(sale, paymentId);
+    sale.getPayments().remove(payment);
+    payment.setSale(null);
+    recalculatePayments(sale);
+    return toResponse(sale);
+  }
+
   @Transactional(readOnly = true)
   public SaleResponse get(Long id) {
     return saleRepository.findById(id).map(this::toResponse).orElseThrow();
@@ -166,9 +187,10 @@ public class SaleService {
       item.setProductId(product.getId());
       item.setProductName(product.getName());
       item.setCategory(product.getCategory());
-      item.setUnitPrice(product.getPrice());
+      BigDecimal unitPrice = resolveUnitPrice(product, itemRequest.unitPrice());
+      item.setUnitPrice(unitPrice);
       item.setQuantity(itemRequest.quantity());
-      item.setLineTotal(product.getPrice().multiply(BigDecimal.valueOf(itemRequest.quantity())));
+      item.setLineTotal(unitPrice.multiply(BigDecimal.valueOf(itemRequest.quantity())));
       item.setPromoEligible(isPromoEligible(product, request.promoCategories()));
       item.setNote(cleanNote(itemRequest.note()));
       sale.getItems().add(item);
@@ -265,6 +287,20 @@ public class SaleService {
     payment.setAmount(request.amount());
     payment.setPaidAt(LocalDateTime.now(APP_ZONE));
     sale.getPayments().add(payment);
+  }
+
+  private SalePayment findPayment(Sale sale, Long paymentId) {
+    return sale.getPayments().stream()
+        .filter(payment -> payment.getId().equals(paymentId))
+        .findFirst()
+        .orElseThrow();
+  }
+
+  private BigDecimal resolveUnitPrice(Product product, BigDecimal requestedPrice) {
+    if (requestedPrice == null) {
+      return product.getPrice();
+    }
+    return requestedPrice.max(ZERO).setScale(2, RoundingMode.HALF_UP);
   }
 
   private void rejectOverpayment(Sale sale) {

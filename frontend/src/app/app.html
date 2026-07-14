@@ -106,6 +106,25 @@
           </div>
         </div>
 
+        <div class="special-charge-row">
+          <label>
+            Adicional
+            <input [(ngModel)]="additionalAmount" inputmode="decimal" placeholder="S/">
+          </label>
+          <button class="secondary compact" type="button" (click)="addFlexibleCharge('Adicional', additionalAmount)">
+            <svg lucidePlus size="15"></svg>
+            Agregar
+          </button>
+          <label>
+            Copa rota
+            <input [(ngModel)]="brokenGlassAmount" inputmode="decimal" placeholder="S/">
+          </label>
+          <button class="secondary compact" type="button" (click)="addFlexibleCharge('Copa rota', brokenGlassAmount)">
+            <svg lucidePlus size="15"></svg>
+            Agregar
+          </button>
+        </div>
+
         <div class="category-group" *ngFor="let group of groupedProducts()">
           <h3>{{ group.label }}</h3>
           <div class="product-grid">
@@ -140,19 +159,19 @@
         </div>
 
         <div class="cart-list">
-          <article *ngFor="let item of cart()" class="cart-item">
+          <article *ngFor="let item of cart(); let index = index" class="cart-item">
             <div class="cart-main">
               <strong>{{ item.product.name }}</strong>
-              <small>{{ money(item.product.price) }} c/u</small>
+              <small>{{ money(item.unitPrice) }} c/u</small>
               <input class="note-input" [(ngModel)]="item.note" placeholder="Nota: salsa aparte, dulce, sin hielo...">
             </div>
             <div class="qty">
-              <button (click)="changeQuantity(item.product.id, -1)">-</button>
+              <button (click)="changeQuantity(index, -1)">-</button>
               <span>{{ item.quantity }}</span>
-              <button (click)="changeQuantity(item.product.id, 1)">+</button>
+              <button (click)="changeQuantity(index, 1)">+</button>
             </div>
-            <b>{{ money(item.product.price * item.quantity) }}</b>
-            <button class="icon-danger" (click)="removeFromCart(item.product.id)" title="Quitar">
+            <b>{{ money(item.unitPrice * item.quantity) }}</b>
+            <button class="icon-danger" (click)="removeFromCart(index)" title="Quitar">
               <svg lucideTrash2 size="16"></svg>
             </button>
           </article>
@@ -355,21 +374,33 @@
             <div class="ticket-total grand"><span>Total</span><b>{{ money(sale.total) }}</b></div>
             <div class="ticket-total"><span>Pagado</span><b>{{ money(sale.paid) }}</b></div>
             <div class="ticket-total"><span>{{ saleStatusLabel(sale) === 'PAGADA' ? 'Estado' : 'Pendiente' }}</span><b>{{ saleStatusLabel(sale) === 'PAGADA' ? 'Pagada' : money(sale.remaining) }}</b></div>
-            <p *ngFor="let payment of sale.payments">Pago: {{ payment.methodLabel }} · {{ money(payment.amount) }}</p>
+            <div class="ticket-payment-row" *ngFor="let payment of sale.payments">
+              <span>Pago: {{ payment.methodLabel }} · {{ money(payment.amount) }}</span>
+              <button class="secondary icon-action" (click)="editHistoryPayment(sale, payment)" title="Editar pago">
+                <svg lucidePencil size="14"></svg>
+              </button>
+              <button class="danger icon-action" (click)="deleteHistoryPayment(sale, payment)" title="Revertir pago">
+                <svg lucideTrash2 size="14"></svg>
+              </button>
+            </div>
           </div>
 
           <div class="payment-row">
             <select [(ngModel)]="historyPaymentMethod">
               <option value="EFECTIVO">Efectivo</option>
-              <option value="YAPE">Yape</option>
+              <option value="QR">QR</option>
+              <option value="YAPE">Yape Silvia Navarro</option>
               <option value="VISA">Visa</option>
             </select>
             <input class="amount-input" [(ngModel)]="historyPaymentAmount" inputmode="decimal" placeholder="Monto" [disabled]="savingHistoryPayment() || sale.remaining <= 0">
             <button class="primary icon-only" (click)="addHistoryPayment()" [disabled]="savingHistoryPayment() || sale.remaining <= 0" title="Registrar pago">
               <svg lucideBanknote size="18"></svg>
             </button>
-            <button class="secondary icon-only" (click)="completeSelectedSale()" [disabled]="savingHistoryPayment() || sale.remaining <= 0" title="Completar saldo pendiente">
+            <button class="secondary icon-only" (click)="completeSelectedSale()" [disabled]="savingHistoryPayment() || sale.remaining <= 0" title="Llenar saldo pendiente">
               <svg lucideCheckCircle2 size="18"></svg>
+            </button>
+            <button class="danger icon-only" (click)="deleteAllHistoryPayments(sale)" [disabled]="savingHistoryPayment() || !sale.payments.length" title="Revertir todos los pagos">
+              <svg lucideRotateCcw size="18"></svg>
             </button>
           </div>
           <p class="change-hint" *ngIf="historyPaymentChange(sale) > 0">Vuelto: {{ money(historyPaymentChange(sale)) }}</p>

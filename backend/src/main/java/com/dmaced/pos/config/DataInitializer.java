@@ -19,6 +19,8 @@ public class DataInitializer implements CommandLineRunner {
   public void run(String... args) {
     createFixedProduct(ProductCategory.TAPER, "Taper para llevar", "2.00");
     createFixedProduct(ProductCategory.VASO, "Vaso para llevar", "1.00");
+    createSpecialProduct("Adicional");
+    createSpecialProduct("Copa rota");
     seedMenuProducts();
   }
 
@@ -30,6 +32,19 @@ public class DataInitializer implements CommandLineRunner {
     product.setName(name);
     product.setCategory(category);
     product.setPrice(new BigDecimal(price));
+    product.setActive(true);
+    product.setPromoEligible(false);
+    productRepository.save(product);
+  }
+
+  private void createSpecialProduct(String name) {
+    if (productRepository.existsByNameIgnoreCase(name)) {
+      return;
+    }
+    Product product = new Product();
+    product.setName(name);
+    product.setCategory(ProductCategory.BEBIDA);
+    product.setPrice(BigDecimal.ZERO);
     product.setActive(true);
     product.setPromoEligible(false);
     productRepository.save(product);

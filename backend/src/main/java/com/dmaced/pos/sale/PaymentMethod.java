@@ -2,7 +2,8 @@ package com.dmaced.pos.sale;
 
 public enum PaymentMethod {
   EFECTIVO("Efectivo"),
-  YAPE("Yape"),
+  YAPE("Yape Silvia Navarro"),
+  QR("QR"),
   VISA("Visa");
 
   private final String label;

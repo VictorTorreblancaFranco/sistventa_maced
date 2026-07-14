@@ -13,7 +13,11 @@ import java.util.List;
 import java.util.Set;
 
 public class SaleDtos {
-  public record SaleItemRequest(@NotNull Long productId, @Min(1) int quantity, String note) {}
+  public record SaleItemRequest(
+      @NotNull Long productId,
+      @Min(1) int quantity,
+      String note,
+      @DecimalMin("0.00") BigDecimal unitPrice) {}
 
   public record PaymentRequest(@NotNull PaymentMethod method, @NotNull @DecimalMin("0.01") BigDecimal amount) {}
 

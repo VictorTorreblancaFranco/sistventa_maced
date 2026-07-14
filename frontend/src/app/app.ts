@@ -26,7 +26,7 @@ import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 
 type Tab = 'sale' | 'products' | 'history' | 'dashboard';
-type PaymentMethod = 'EFECTIVO' | 'YAPE' | 'VISA';
+type PaymentMethod = 'EFECTIVO' | 'QR' | 'YAPE' | 'VISA';
 type ProductStatusFilter = 'ACTIVE' | 'INACTIVE' | 'DELETED' | 'ALL';
 type RuntimeWindow = Window & { __env?: { apiUrl?: string } };
 type AuthResponse = { token: string; username: string; expiresAt: string };
@@ -52,6 +52,7 @@ interface CartItem {
   product: Product;
   quantity: number;
   note: string;
+  unitPrice: number;
 }
 
 interface Payment {
@@ -84,6 +85,7 @@ interface Sale {
     note?: string;
   }>;
   payments: Array<{
+    id: number;
     method: PaymentMethod;
     methodLabel: string;
     amount: number;
@@ -180,6 +182,8 @@ export class App implements OnInit {
   paymentAmount = '';
   historyPaymentMethod: PaymentMethod = 'EFECTIVO';
   historyPaymentAmount = '';
+  additionalAmount = '';
+  brokenGlassAmount = '';
 
   groupedProducts = computed(() => {
     const search = this.normalize(this.productSearch());
@@ -188,8 +192,9 @@ export class App implements OnInit {
         ...category,
         products: this.products().filter(product => {
           const matchesCategory = product.active && !product.deleted && product.category === category.code;
+          const isSpecialCharge = this.isFlexibleChargeProduct(product);
           const matchesSearch = !search || this.normalize(`${product.name} ${product.categoryLabel}`).includes(search);
-          return matchesCategory && matchesSearch;
+          return matchesCategory && !isSpecialCharge && matchesSearch;
         })
       }))
       .filter(group => group.products.length);
@@ -221,7 +226,7 @@ export class App implements OnInit {
   }));
 
   cartSubtotal = computed(() =>
-    this.cart().reduce((total, item) => total + Number(item.product.price) * item.quantity, 0)
+    this.cart().reduce((total, item) => total + Number(item.unitPrice) * item.quantity, 0)
   );
 
   constructor(private http: HttpClient) {}
@@ -394,11 +399,11 @@ export class App implements OnInit {
 
   addToCart(product: Product): void {
     const current = [...this.cart()];
-    const item = current.find(value => value.product.id === product.id);
+    const item = current.find(value => value.product.id === product.id && Number(value.unitPrice) === Number(product.price));
     if (item) {
       item.quantity += 1;
     } else {
-      current.push({ product, quantity: 1, note: '' });
+      current.push({ product, quantity: 1, note: '', unitPrice: Number(product.price) });
     }
     if (product.category === 'TAPER' || product.category === 'VASO') {
       this.takeaway = true;
@@ -407,15 +412,30 @@ export class App implements OnInit {
     this.cart.set(current);
   }
 
-  changeQuantity(productId: number, delta: number): void {
+  addFlexibleCharge(name: 'Adicional' | 'Copa rota', amountValue: string): void {
+    const product = this.products().find(item => this.normalize(item.name) === this.normalize(name) && !item.deleted);
+    const amount = this.parseAmount(amountValue);
+    if (!product || amount <= 0) {
+      Swal.fire('Importe inválido', 'Ingresa un monto mayor a cero.', 'warning');
+      return;
+    }
+    this.cart.set([...this.cart(), { product, quantity: 1, note: '', unitPrice: amount }]);
+    if (name === 'Adicional') {
+      this.additionalAmount = '';
+    } else {
+      this.brokenGlassAmount = '';
+    }
+  }
+
+  changeQuantity(index: number, delta: number): void {
     const next = this.cart()
-      .map(item => item.product.id === productId ? { ...item, quantity: item.quantity + delta } : item)
+      .map((item, itemIndex) => itemIndex === index ? { ...item, quantity: item.quantity + delta } : item)
       .filter(item => item.quantity > 0);
     this.cart.set(next);
   }
 
-  removeFromCart(productId: number): void {
-    this.cart.set(this.cart().filter(item => item.product.id !== productId));
+  removeFromCart(index: number): void {
+    this.cart.set(this.cart().filter((_, itemIndex) => itemIndex !== index));
   }
 
   addDraftPayment(): void {
@@ -461,7 +481,7 @@ export class App implements OnInit {
       promoActive: this.promoActive,
       discountPercent: Number(this.discountPercent || 0),
       promoCategories,
-      items: this.cart().map(item => ({ productId: item.product.id, quantity: item.quantity, note: item.note })),
+      items: this.cart().map(item => ({ productId: item.product.id, quantity: item.quantity, note: item.note, unitPrice: item.unitPrice })),
       payments: []
     };
 
@@ -497,7 +517,8 @@ export class App implements OnInit {
     this.cart.set(sale.items.map(item => ({
       product: productsById.get(item.productId)!,
       quantity: item.quantity,
-      note: item.note || ''
+      note: item.note || '',
+      unitPrice: Number(item.unitPrice)
     })));
     this.payments.set([]);
     this.editingSaleId.set(sale.id);
@@ -579,13 +600,99 @@ export class App implements OnInit {
     });
   }
 
+  editHistoryPayment(sale: Sale, payment: Sale['payments'][number]): void {
+    Swal.fire({
+      title: 'Editar pago',
+      html: `
+        <select id="payment-method" class="swal2-select">
+          <option value="EFECTIVO" ${payment.method === 'EFECTIVO' ? 'selected' : ''}>Efectivo</option>
+          <option value="QR" ${payment.method === 'QR' ? 'selected' : ''}>QR</option>
+          <option value="YAPE" ${payment.method === 'YAPE' ? 'selected' : ''}>Yape Silvia Navarro</option>
+          <option value="VISA" ${payment.method === 'VISA' ? 'selected' : ''}>Visa</option>
+        </select>
+        <input id="payment-amount" class="swal2-input" inputmode="decimal" value="${Number(payment.amount).toFixed(2)}">
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Actualizar',
+      cancelButtonText: 'Cancelar',
+      preConfirm: () => {
+        const method = (document.getElementById('payment-method') as HTMLSelectElement)?.value as PaymentMethod;
+        const amount = this.parseAmount((document.getElementById('payment-amount') as HTMLInputElement)?.value || '');
+        if (!method || amount <= 0) {
+          Swal.showValidationMessage('Ingresa un metodo y monto valido.');
+          return false;
+        }
+        return { method, amount };
+      }
+    }).then(result => {
+      if (!result.isConfirmed || !result.value) {
+        return;
+      }
+      this.savingHistoryPayment.set(true);
+      this.http.put<Sale>(`${this.api}/sales/${sale.id}/payments/${payment.id}`, result.value, this.options()).subscribe({
+        next: updated => this.afterHistoryPaymentChange(updated, 'Pago actualizado'),
+        error: error => Swal.fire('No se pudo actualizar', this.errorMessage(error), 'error')
+      }).add(() => this.savingHistoryPayment.set(false));
+    });
+  }
+
+  deleteHistoryPayment(sale: Sale, payment: Sale['payments'][number]): void {
+    Swal.fire({
+      title: 'Revertir pago',
+      text: `${payment.methodLabel} · ${this.money(payment.amount)}`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Revertir',
+      cancelButtonText: 'Cancelar'
+    }).then(result => {
+      if (!result.isConfirmed) {
+        return;
+      }
+      this.savingHistoryPayment.set(true);
+      this.http.delete<Sale>(`${this.api}/sales/${sale.id}/payments/${payment.id}`, this.options()).subscribe({
+        next: updated => this.afterHistoryPaymentChange(updated, 'Pago revertido'),
+        error: error => Swal.fire('No se pudo revertir', this.errorMessage(error), 'error')
+      }).add(() => this.savingHistoryPayment.set(false));
+    });
+  }
+
+  deleteAllHistoryPayments(sale: Sale): void {
+    Swal.fire({
+      title: 'Revertir todos los pagos',
+      text: `La cuenta #${sale.id} volvera a pendiente por ${this.money(sale.total)}.`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Revertir pagos',
+      cancelButtonText: 'Cancelar'
+    }).then(result => {
+      if (!result.isConfirmed) {
+        return;
+      }
+      this.savingHistoryPayment.set(true);
+      const deletes = sale.payments.map(payment =>
+        this.http.delete<Sale>(`${this.api}/sales/${sale.id}/payments/${payment.id}`, this.options())
+      );
+      forkJoin(deletes).subscribe({
+        next: updates => this.afterHistoryPaymentChange(updates[updates.length - 1], 'Pagos revertidos'),
+        error: error => Swal.fire('No se pudo revertir', this.errorMessage(error), 'error')
+      }).add(() => this.savingHistoryPayment.set(false));
+    });
+  }
+
+  private afterHistoryPaymentChange(updated: Sale, title: string): void {
+    this.selectedSale.set(updated);
+    this.historyPaymentAmount = '';
+    this.loadSales();
+    this.loadDashboard();
+    Swal.fire(title, `Pendiente: ${this.money(updated.remaining)}`, 'success');
+  }
+
   completeSelectedSale(): void {
     const sale = this.selectedSale();
     if (!sale || this.savingHistoryPayment() || Number(sale.remaining) <= 0) {
       return;
     }
     this.historyPaymentAmount = Number(sale.remaining).toFixed(2);
-    this.addHistoryPayment();
   }
 
   historyPaymentChange(sale: Sale): number {
@@ -673,7 +780,7 @@ export class App implements OnInit {
 
       pdf.setFontSize(9);
       pdf.setTextColor(80, 80, 76);
-      pdf.text(`Cobrado: ${this.money(paid)}   Efectivo: ${this.money(paymentsByMethod.EFECTIVO)}   Yape: ${this.money(paymentsByMethod.YAPE)}   Visa: ${this.money(paymentsByMethod.VISA)}`, margin, y);
+      pdf.text(`Cobrado: ${this.money(paid)}   Efectivo: ${this.money(paymentsByMethod.EFECTIVO)}   QR: ${this.money(paymentsByMethod.QR)}   Yape Silvia: ${this.money(paymentsByMethod.YAPE)}   Visa: ${this.money(paymentsByMethod.VISA)}`, margin, y);
       y += 9;
     };
 
@@ -746,7 +853,7 @@ export class App implements OnInit {
         totals[payment.method] += Number(payment.amount);
       });
       return totals;
-    }, { EFECTIVO: 0, YAPE: 0, VISA: 0 });
+    }, { EFECTIVO: 0, QR: 0, YAPE: 0, VISA: 0 });
   }
 
   private saleDetailSummary(sale: Sale): string {
@@ -838,7 +945,7 @@ export class App implements OnInit {
 
     pdf.setFontSize(9);
     pdf.setTextColor(80, 80, 76);
-    pdf.text(`Metodos: efectivo ${this.money(paymentsByMethod.EFECTIVO)} · Yape ${this.money(paymentsByMethod.YAPE)} · Visa ${this.money(paymentsByMethod.VISA)}`, margin, y);
+    pdf.text(`Metodos: efectivo ${this.money(paymentsByMethod.EFECTIVO)} · QR ${this.money(paymentsByMethod.QR)} · Yape Silvia ${this.money(paymentsByMethod.YAPE)} · Visa ${this.money(paymentsByMethod.VISA)}`, margin, y);
     y += 10;
 
     pdf.setFont('helvetica', 'bold');
@@ -1030,7 +1137,7 @@ export class App implements OnInit {
   }
 
   isPromoProduct(product: Product): boolean {
-    if (!this.promoActive || !product.promoEligible) {
+    if (!this.promoActive || !product.promoEligible || this.isFlexibleChargeProduct(product)) {
       return false;
     }
     if (['COMBO_COMIDA', 'PONCHERA_1_5', 'PONCHERA_3'].includes(product.category)) {
@@ -1039,13 +1146,18 @@ export class App implements OnInit {
     return this.promoScope === 'ALL' || this.promoScope === product.category;
   }
 
+  isFlexibleChargeProduct(product: Product): boolean {
+    const name = this.normalize(product.name);
+    return name === 'adicional' || name === 'copa rota';
+  }
+
   estimatedPromoDiscount(): number {
     if (!this.promoActive) {
       return 0;
     }
     const units = this.cart().flatMap(item =>
       this.isPromoProduct(item.product)
-        ? Array.from({ length: item.quantity }, () => Number(item.product.price))
+        ? Array.from({ length: item.quantity }, () => Number(item.unitPrice))
         : []
     );
     if (units.length < 3) {
@@ -1087,6 +1199,8 @@ export class App implements OnInit {
     this.promoScope = 'ALL';
     this.discountPercent = 0;
     this.paymentAmount = '';
+    this.additionalAmount = '';
+    this.brokenGlassAmount = '';
   }
 
   money(value: number): string {
@@ -1094,7 +1208,16 @@ export class App implements OnInit {
   }
 
   methodLabel(method: PaymentMethod): string {
-    return method === 'EFECTIVO' ? 'Efectivo' : method === 'YAPE' ? 'Yape' : 'Visa';
+    if (method === 'EFECTIVO') {
+      return 'Efectivo';
+    }
+    if (method === 'QR') {
+      return 'QR';
+    }
+    if (method === 'YAPE') {
+      return 'Yape Silvia Navarro';
+    }
+    return 'Visa';
   }
 
   private options() {

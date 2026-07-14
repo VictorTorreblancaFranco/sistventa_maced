@@ -56,6 +56,16 @@ public class SaleController {
     return saleService.addPayment(id, request);
   }
 
+  @PutMapping("/{id}/payments/{paymentId}")
+  SaleResponse updatePayment(@PathVariable Long id, @PathVariable Long paymentId, @Valid @RequestBody PaymentRequest request) {
+    return saleService.updatePayment(id, paymentId, request);
+  }
+
+  @DeleteMapping("/{id}/payments/{paymentId}")
+  SaleResponse deletePayment(@PathVariable Long id, @PathVariable Long paymentId) {
+    return saleService.deletePayment(id, paymentId);
+  }
+
   @DeleteMapping("/{id}")
   void delete(@PathVariable Long id) {
     saleService.delete(id);
