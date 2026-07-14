@@ -1391,6 +1391,11 @@ nav button.active {
   overflow: auto;
 }
 
+.people-screen {
+  align-content: start;
+  grid-template-rows: auto auto;
+}
+
 .staff-layout,
 .staff-people-view {
   display: grid;
@@ -1409,6 +1414,11 @@ nav button.active {
 
 .staff-people-view {
   grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+}
+
+.people-screen .staff-people-view {
+  align-items: start;
+  overflow: visible;
 }
 
 .staff-main,
@@ -1465,6 +1475,11 @@ nav button.active {
   overflow: auto;
 }
 
+.people-screen .staff-people-panel,
+.people-screen .staff-roles-panel {
+  overflow: visible;
+}
+
 .staff-people-grid {
   align-content: start;
   display: grid;
@@ -1472,6 +1487,22 @@ nav button.active {
   grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
   min-height: 0;
   overflow: auto;
+}
+
+.people-screen .staff-people-grid {
+  overflow: visible;
+}
+
+.staff-empty {
+  background: #fffdf8;
+  border: 1px dashed #ddd3c4;
+  border-radius: 10px;
+  color: var(--muted);
+  font-weight: 800;
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 22px 14px;
+  text-align: center;
 }
 
 .person-card {
