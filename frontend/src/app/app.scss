@@ -1385,10 +1385,10 @@ nav button.active {
 .staff-screen {
   display: grid;
   gap: 12px;
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
   height: calc(100vh - 28px);
   min-height: 0;
-  overflow: hidden;
+  overflow: auto;
 }
 
 .staff-layout,
@@ -1401,6 +1401,10 @@ nav button.active {
 
 .staff-layout {
   grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+}
+
+.staff-layout.no-editor {
+  grid-template-columns: minmax(0, 1fr);
 }
 
 .staff-people-view {
@@ -1436,11 +1440,6 @@ nav button.active {
   justify-content: flex-end;
 }
 
-.staff-tabs {
-  grid-template-columns: 1fr 1fr;
-  min-width: 230px;
-}
-
 .staff-metrics {
   display: grid;
   gap: 12px;
@@ -1456,7 +1455,7 @@ nav button.active {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
-  overflow: auto;
+  overflow: visible;
 }
 
 .staff-people-panel,
@@ -1496,7 +1495,6 @@ nav button.active {
 }
 
 .staff-board-panel > .section-head {
-  min-width: 1120px;
   position: sticky;
   left: 0;
   z-index: 2;
@@ -1505,7 +1503,7 @@ nav button.active {
 .staff-table {
   display: grid;
   gap: 8px;
-  min-width: 1120px;
+  min-width: 0;
   overflow: visible;
 }
 
@@ -1513,13 +1511,13 @@ nav button.active {
 .staff-row {
   align-items: stretch;
   display: grid;
-  gap: 8px;
-  grid-template-columns: 210px repeat(7, minmax(118px, 1fr));
+  gap: 6px;
+  grid-template-columns: minmax(128px, 1.2fr) repeat(7, minmax(72px, 1fr));
 }
 
 .staff-table-head {
   color: var(--muted);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 900;
   position: sticky;
   top: 0;
@@ -1533,7 +1531,8 @@ nav button.active {
   border-radius: 8px;
   display: grid;
   gap: 2px;
-  padding: 8px;
+  min-height: 54px;
+  padding: 8px 7px;
 }
 
 .staff-table-head small {
@@ -1545,7 +1544,7 @@ nav button.active {
 .staff-row {
   background: transparent;
   color: var(--ink);
-  min-height: 84px;
+  min-height: 74px;
   padding: 0;
   text-align: left;
 }
@@ -1563,7 +1562,7 @@ nav button.active {
   display: grid;
   gap: 3px;
   min-width: 0;
-  padding: 10px;
+  padding: 8px;
 }
 
 .staff-person {
@@ -1583,7 +1582,11 @@ nav button.active {
 }
 
 .staff-day b {
-  font-size: 13px;
+  font-size: 12px;
+}
+
+.staff-day small {
+  font-size: 11px;
 }
 
 .staff-day em,

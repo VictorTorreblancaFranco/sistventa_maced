@@ -26,8 +26,7 @@ import jsPDF from 'jspdf';
 import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 
-type Tab = 'sale' | 'products' | 'history' | 'dashboard' | 'staff';
-type StaffView = 'employees' | 'schedule';
+type Tab = 'sale' | 'products' | 'history' | 'dashboard' | 'staffSchedule' | 'staffEmployees';
 type PaymentMethod = 'EFECTIVO' | 'QR' | 'YAPE' | 'VISA';
 type ProductStatusFilter = 'ACTIVE' | 'INACTIVE' | 'DELETED' | 'ALL';
 type RuntimeWindow = Window & { __env?: { apiUrl?: string } };
@@ -232,7 +231,6 @@ export class App implements OnInit {
   staffRoles = signal<StaffRole[]>([]);
   employees = signal<Employee[]>([]);
   staffWeek = signal<StaffWeek | null>(null);
-  staffView = signal<StaffView>('schedule');
   selectedEmployeeId = signal<number | null>(null);
   employeeSchedule = signal<StaffSchedule[]>([]);
   employeeExceptions = signal<StaffException[]>([]);
@@ -1906,6 +1904,25 @@ export class App implements OnInit {
     return labels[day] || day;
   }
 
+  staffWeekDays(week: StaffWeek): StaffWeek['rows'][number]['days'] {
+    if (week.rows[0]?.days?.length) {
+      return week.rows[0].days;
+    }
+    const days = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+    const start = new Date(`${week.weekStart}T00:00:00`);
+    return days.map((dayOfWeek, index) => {
+      const date = new Date(start);
+      date.setDate(start.getDate() + index);
+      return {
+        date: this.dateInputFromDate(date),
+        dayOfWeek,
+        working: false,
+        status: '',
+        note: ''
+      };
+    });
+  }
+
   fullDayName(day: string): string {
     const labels: Record<string, string> = {
       MONDAY: 'Lunes',
@@ -2090,6 +2107,11 @@ export class App implements OnInit {
 
   private currentDateInput(): string {
     const now = new Date();
+    return this.dateInputFromDate(now);
+  }
+
+  private dateInputFromDate(value: Date): string {
+    const now = value;
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
