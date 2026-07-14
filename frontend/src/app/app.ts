@@ -27,6 +27,7 @@ import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 
 type Tab = 'sale' | 'products' | 'history' | 'dashboard' | 'staff';
+type StaffView = 'employees' | 'schedule';
 type PaymentMethod = 'EFECTIVO' | 'QR' | 'YAPE' | 'VISA';
 type ProductStatusFilter = 'ACTIVE' | 'INACTIVE' | 'DELETED' | 'ALL';
 type RuntimeWindow = Window & { __env?: { apiUrl?: string } };
@@ -231,6 +232,7 @@ export class App implements OnInit {
   staffRoles = signal<StaffRole[]>([]);
   employees = signal<Employee[]>([]);
   staffWeek = signal<StaffWeek | null>(null);
+  staffView = signal<StaffView>('schedule');
   selectedEmployeeId = signal<number | null>(null);
   employeeSchedule = signal<StaffSchedule[]>([]);
   employeeExceptions = signal<StaffException[]>([]);
@@ -1527,7 +1529,6 @@ export class App implements OnInit {
           <input id="employee-name" value="${this.escapeHtml(employee?.name || '')}" placeholder="Nombre del colaborador">
           <label>Rol</label>
           <select id="employee-role">${roleOptions}</select>
-          <small>Se creara activo. Para desactivarlo usa el boton de estado en la lista.</small>
         </div>
       `,
       showCancelButton: true,

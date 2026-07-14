@@ -433,48 +433,102 @@
       </div>
     </section>
 
-    <section *ngIf="tab() === 'staff'" class="staff-layout">
-      <div class="staff-main">
-        <header class="dashboard-head staff-head">
-          <div>
-            <h2>Personal</h2>
-            <p>Horarios semanales, descansos, permisos y vacaciones.</p>
+    <section *ngIf="tab() === 'staff'" class="staff-screen">
+      <header class="dashboard-head staff-head">
+        <div>
+          <h2>Personal</h2>
+          <p>{{ staffView() === 'schedule' ? 'Horarios semanales, descansos, permisos y vacaciones.' : 'Colaboradores, roles y estado operativo.' }}</p>
+        </div>
+        <div class="dashboard-actions">
+          <div class="segmented staff-tabs">
+            <button type="button" [class.active]="staffView() === 'schedule'" (click)="staffView.set('schedule')">Horarios</button>
+            <button type="button" [class.active]="staffView() === 'employees'" (click)="staffView.set('employees')">Colaboradores</button>
           </div>
-          <div class="dashboard-actions">
-            <input class="date-input" [(ngModel)]="staffWeekDate" type="date" (change)="loadStaffWeek()" title="Semana del horario">
-            <button class="primary compact" (click)="openEmployeeDialog()" title="Agregar colaborador">
+          <input *ngIf="staffView() === 'schedule'" class="date-input" [(ngModel)]="staffWeekDate" type="date" (change)="loadStaffWeek()" title="Semana del horario">
+          <button *ngIf="staffView() === 'employees'" class="primary compact" (click)="openEmployeeDialog()" title="Agregar colaborador">
+            <svg lucidePlus size="16"></svg>
+            Colaborador
+          </button>
+          <button *ngIf="staffView() === 'employees'" class="secondary compact" (click)="openRoleDialog()" title="Crear rol">
+            <svg lucideUsers size="16"></svg>
+            Rol
+          </button>
+          <button *ngIf="staffView() === 'schedule'" class="secondary compact" (click)="downloadStaffScheduleImage()" [disabled]="!staffWeek()" title="Descargar horario">
+            <svg lucideDownload size="16"></svg>
+            Imagen
+          </button>
+        </div>
+      </header>
+
+      <section class="staff-metrics">
+        <article class="metric hero-metric">
+          <span>Colaboradores activos</span>
+          <strong>{{ activeEmployeesCount() }}</strong>
+          <small>{{ employees().length - activeEmployeesCount() }} desactivados</small>
+        </article>
+        <article class="metric">
+          <span>Roles</span>
+          <strong>{{ staffRoles().length }}</strong>
+          <small>Roles administrables</small>
+        </article>
+        <article class="metric">
+          <span>Excepciones</span>
+          <strong>{{ employeeExceptions().length }}</strong>
+          <small>{{ selectedEmployee()?.name || 'Selecciona colaborador' }}</small>
+        </article>
+      </section>
+
+      <section *ngIf="staffView() === 'employees'" class="staff-people-view">
+        <section class="panel staff-people-panel">
+          <header class="section-head tight">
+            <div>
+              <h2>Colaboradores</h2>
+              <p>Administra datos internos, rol y disponibilidad.</p>
+            </div>
+            <button class="primary compact" type="button" (click)="openEmployeeDialog()">
               <svg lucidePlus size="16"></svg>
               Colaborador
             </button>
-            <button class="secondary compact" (click)="openRoleDialog()" title="Crear rol">
-              <svg lucideUsers size="16"></svg>
-              Rol
-            </button>
-            <button class="secondary compact" (click)="downloadStaffScheduleImage()" [disabled]="!staffWeek()" title="Descargar horario">
-              <svg lucideDownload size="16"></svg>
-              Imagen
-            </button>
+          </header>
+          <div class="staff-people-grid">
+            <article class="employee-card person-card" *ngFor="let employee of employees()" [class.inactive]="!employee.active" [class.active]="selectedEmployeeId() === employee.id" (click)="selectEmployee(employee)">
+              <div>
+                <strong>{{ employee.name }}</strong>
+                <small>{{ employee.roleName }} · {{ employee.active ? 'Activo' : 'Desactivado' }}</small>
+                <em *ngIf="employee.inactiveReason">{{ employee.inactiveReason }}</em>
+              </div>
+              <div class="sale-actions">
+                <button class="secondary icon-action" type="button" (click)="openEmployeeDialog(employee); $event.stopPropagation()" title="Editar">
+                  <svg lucidePencil size="14"></svg>
+                </button>
+                <button class="danger icon-action" type="button" (click)="toggleEmployeeStatus(employee); $event.stopPropagation()" [title]="employee.active ? 'Desactivar' : 'Restaurar'">
+                  <svg *ngIf="employee.active" lucidePower size="14"></svg>
+                  <svg *ngIf="!employee.active" lucideRotateCcw size="14"></svg>
+                </button>
+              </div>
+            </article>
+            <p *ngIf="!employees().length" class="empty-state products-empty">Aun no hay colaboradores registrados.</p>
           </div>
-        </header>
-
-        <section class="staff-metrics">
-          <article class="metric hero-metric">
-            <span>Colaboradores activos</span>
-            <strong>{{ activeEmployeesCount() }}</strong>
-            <small>{{ employees().length - activeEmployeesCount() }} desactivados</small>
-          </article>
-          <article class="metric">
-            <span>Roles</span>
-            <strong>{{ staffRoles().length }}</strong>
-            <small>Roles administrables</small>
-          </article>
-          <article class="metric">
-            <span>Excepciones</span>
-            <strong>{{ employeeExceptions().length }}</strong>
-            <small>{{ selectedEmployee()?.name || 'Selecciona colaborador' }}</small>
-          </article>
         </section>
 
+        <section class="panel staff-roles-panel">
+          <header class="section-head tight">
+            <div>
+              <h2>Roles</h2>
+              <p>Clasifica el equipo sin dar acceso al sistema.</p>
+            </div>
+            <button class="secondary icon-action" type="button" (click)="openRoleDialog()" title="Crear rol">
+              <svg lucidePlus size="14"></svg>
+            </button>
+          </header>
+          <div class="role-chip-list">
+            <span *ngFor="let role of staffRoles()">{{ role.name }}</span>
+          </div>
+        </section>
+      </section>
+
+      <section *ngIf="staffView() === 'schedule'" class="staff-layout">
+        <div class="staff-main">
         <section class="panel staff-board-panel" id="staff-schedule-board">
           <header class="section-head tight">
             <div>
@@ -509,36 +563,6 @@
       </div>
 
       <aside class="staff-side">
-        <section class="panel employee-list">
-          <header class="section-head tight">
-            <div>
-              <h2>Colaboradores</h2>
-              <p>{{ employees().length }} registrados</p>
-            </div>
-            <button class="primary icon-action" type="button" (click)="openEmployeeDialog()" title="Agregar colaborador">
-              <svg lucidePlus size="14"></svg>
-            </button>
-          </header>
-          <div class="employee-list-scroll">
-            <article class="employee-card" *ngFor="let employee of employees()" [class.inactive]="!employee.active" [class.active]="selectedEmployeeId() === employee.id" (click)="selectEmployee(employee)">
-              <div>
-                <strong>{{ employee.name }}</strong>
-                <small>{{ employee.roleName }} · {{ employee.active ? 'Activo' : 'Desactivado' }}</small>
-                <em *ngIf="employee.inactiveReason">{{ employee.inactiveReason }}</em>
-              </div>
-              <div class="sale-actions">
-                <button class="secondary icon-action" type="button" (click)="openEmployeeDialog(employee); $event.stopPropagation()" title="Editar">
-                  <svg lucidePencil size="14"></svg>
-                </button>
-                <button class="danger icon-action" type="button" (click)="toggleEmployeeStatus(employee); $event.stopPropagation()" [title]="employee.active ? 'Desactivar' : 'Restaurar'">
-                  <svg *ngIf="employee.active" lucidePower size="14"></svg>
-                  <svg *ngIf="!employee.active" lucideRotateCcw size="14"></svg>
-                </button>
-              </div>
-            </article>
-          </div>
-        </section>
-
         <section class="panel schedule-editor" *ngIf="selectedEmployee() as employee">
           <header class="section-head tight">
             <div>
@@ -585,6 +609,7 @@
           </article>
         </section>
       </aside>
+      </section>
     </section>
 
     <section *ngIf="tab() === 'dashboard'" class="dashboard" >

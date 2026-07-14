@@ -290,8 +290,7 @@ nav button.active {
 
 .sale-layout,
 .history-layout,
-.two-columns,
-.staff-layout {
+.two-columns {
   display: grid;
   gap: 12px;
   height: calc(100vh - 28px);
@@ -308,11 +307,6 @@ nav button.active {
 
 .two-columns {
   grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
-}
-
-.staff-layout {
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
-  overflow: hidden;
 }
 
 .section-head {
@@ -1382,6 +1376,31 @@ nav button.active {
   text-align: right;
 }
 
+.staff-screen {
+  display: grid;
+  gap: 12px;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  height: calc(100vh - 28px);
+  min-height: 0;
+  overflow: hidden;
+}
+
+.staff-layout,
+.staff-people-view {
+  display: grid;
+  gap: 12px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.staff-layout {
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+}
+
+.staff-people-view {
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+}
+
 .staff-main,
 .staff-side {
   display: grid;
@@ -1390,7 +1409,7 @@ nav button.active {
 }
 
 .staff-main {
-  grid-template-rows: auto auto minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
   overflow: hidden;
 }
 
@@ -1411,6 +1430,11 @@ nav button.active {
   justify-content: flex-end;
 }
 
+.staff-tabs {
+  grid-template-columns: 1fr 1fr;
+  min-width: 230px;
+}
+
 .staff-metrics {
   display: grid;
   gap: 12px;
@@ -1427,6 +1451,42 @@ nav button.active {
   grid-template-rows: auto minmax(0, 1fr);
   min-height: 0;
   overflow: auto;
+}
+
+.staff-people-panel,
+.staff-roles-panel {
+  align-content: start;
+  min-height: 0;
+  overflow: auto;
+}
+
+.staff-people-grid {
+  align-content: start;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  min-height: 0;
+  overflow: auto;
+}
+
+.person-card {
+  min-height: 96px;
+}
+
+.role-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.role-chip-list span {
+  background: #f3f7f4;
+  border: 1px solid #dce8e2;
+  border-radius: 999px;
+  color: var(--brand);
+  font-size: 13px;
+  font-weight: 800;
+  padding: 7px 10px;
 }
 
 .staff-board-panel > .section-head {
@@ -1647,10 +1707,13 @@ nav button.active {
   .sale-layout,
   .history-layout,
   .two-columns,
+  .staff-screen,
   .staff-layout,
+  .staff-people-view,
   .dashboard {
     height: auto;
     grid-template-columns: 1fr;
+    overflow: visible;
   }
 
   .dashboard-summary,
