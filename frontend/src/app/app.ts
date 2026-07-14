@@ -95,6 +95,7 @@ interface Sale {
 
 interface Dashboard {
   todaySales: number;
+  todayPending: number;
   weekSales: number;
   monthSales: number;
   pendingAmount: number;
@@ -103,6 +104,7 @@ interface Dashboard {
   todayPaymentsByMethod: PaymentMethodSummary[];
   weekPaymentsByMethod: PaymentMethodSummary[];
   monthPaymentsByMethod: PaymentMethodSummary[];
+  cashClosure?: CashClosure | null;
 }
 
 interface PaymentMethodSummary {
@@ -111,6 +113,21 @@ interface PaymentMethodSummary {
   sales: number;
   payments: number;
   total: number;
+}
+
+interface CashClosure {
+  id: number;
+  businessDate: string;
+  closedAt: string;
+  closedBy: string;
+  note?: string;
+  totalSales: number;
+  totalPaid: number;
+  totalPending: number;
+  orders: number;
+  paidOrders: number;
+  pendingOrders: number;
+  paymentsByMethod: PaymentMethodSummary[];
 }
 
 @Component({
@@ -163,6 +180,7 @@ export class App implements OnInit {
   loading = signal(false);
   savingSale = signal(false);
   savingHistoryPayment = signal(false);
+  savingCashClosure = signal(false);
   editingSaleId = signal<number | null>(null);
 
   productForm = {
@@ -1072,6 +1090,102 @@ export class App implements OnInit {
 
     footer();
     pdf.save(`bar-dmaced-semana-${weekStart}-a-${weekEnd}.pdf`);
+  }
+
+  closeCash(data: Dashboard): void {
+    if (this.savingCashClosure()) {
+      return;
+    }
+    Swal.fire({
+      title: data.cashClosure ? 'Actualizar cierre de caja' : 'Cerrar caja',
+      html: `
+        <div style="display:grid;gap:8px;text-align:left">
+          <p style="display:flex;justify-content:space-between;margin:0"><b>Fecha:</b><span>${this.formatReportDate(this.dashboardDate)}</span></p>
+          <p style="display:flex;justify-content:space-between;margin:0"><b>Ventas:</b><span>${this.money(data.todaySales)}</span></p>
+          <p style="display:flex;justify-content:space-between;margin:0"><b>Cobrado:</b><span>${this.money(this.dashboardTodayPaid(data))}</span></p>
+          <p style="display:flex;justify-content:space-between;margin:0"><b>Pendiente del dia:</b><span>${this.money(data.todayPending)}</span></p>
+          <textarea id="cash-note" class="swal2-textarea" placeholder="Nota del cierre, diferencias o comentarios">${data.cashClosure?.note || ''}</textarea>
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: data.cashClosure ? 'Actualizar cierre' : 'Cerrar caja',
+      cancelButtonText: 'Cancelar',
+      preConfirm: () => ({
+        note: (document.getElementById('cash-note') as HTMLTextAreaElement)?.value || ''
+      })
+    }).then(result => {
+      if (!result.isConfirmed) {
+        return;
+      }
+      this.savingCashClosure.set(true);
+      this.http.post<CashClosure>(`${this.api}/sales/cash-closure?date=${this.dashboardDate}`, result.value, this.options()).subscribe({
+        next: closure => {
+          this.dashboard.update(current => current ? { ...current, cashClosure: closure } : current);
+          this.loadDashboard();
+          Swal.fire('Caja cerrada', `Total cobrado: ${this.money(closure.totalPaid)}`, 'success');
+        },
+        error: error => Swal.fire('No se pudo cerrar caja', this.errorMessage(error), 'error')
+      }).add(() => this.savingCashClosure.set(false));
+    });
+  }
+
+  downloadCashClosurePdf(data: Dashboard): void {
+    const closure = data.cashClosure;
+    if (!closure) {
+      Swal.fire('Sin cierre', 'Primero cierra caja para descargar el reporte.', 'info');
+      return;
+    }
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const margin = 14;
+    let y = 18;
+
+    pdf.setFont('helvetica', 'bold');
+    pdf.setFontSize(18);
+    pdf.text("Bar D'maced", margin, y);
+    y += 8;
+    pdf.setFontSize(12);
+    pdf.text(`Cierre de caja · ${this.formatReportDate(closure.businessDate)}`, margin, y);
+    y += 7;
+    pdf.setFont('helvetica', 'normal');
+    pdf.setFontSize(9);
+    pdf.text(`Cerrado: ${this.formatDateTime(closure.closedAt)} · Usuario: ${closure.closedBy}`, margin, y);
+    y += 12;
+
+    const summary = [
+      ['Ventas registradas', this.money(closure.totalSales)],
+      ['Cobrado en caja', this.money(closure.totalPaid)],
+      ['Pendiente del dia', this.money(closure.totalPending)],
+      ['Cuentas', `${closure.orders} total · ${closure.paidOrders} pagadas · ${closure.pendingOrders} pendientes`]
+    ];
+    summary.forEach(([label, value]) => {
+      pdf.setFont('helvetica', 'bold');
+      pdf.text(label, margin, y);
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(value, 82, y);
+      y += 7;
+    });
+
+    y += 5;
+    pdf.setFont('helvetica', 'bold');
+    pdf.text('Medios de pago', margin, y);
+    y += 7;
+    pdf.setFont('helvetica', 'normal');
+    closure.paymentsByMethod.forEach(method => {
+      pdf.text(`${method.label}: ${method.sales} ventas · ${this.money(method.total)}`, margin, y);
+      y += 6;
+    });
+
+    if (closure.note) {
+      y += 5;
+      pdf.setFont('helvetica', 'bold');
+      pdf.text('Nota', margin, y);
+      y += 6;
+      pdf.setFont('helvetica', 'normal');
+      pdf.text(pdf.splitTextToSize(closure.note, 180), margin, y);
+    }
+
+    pdf.save(`bar-dmaced-cierre-${closure.businessDate}.pdf`);
   }
 
   saleStatusLabel(sale: Sale): 'PENDIENTE' | 'PAGADA' {

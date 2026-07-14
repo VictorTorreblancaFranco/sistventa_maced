@@ -438,6 +438,14 @@
           </div>
           <div class="dashboard-actions">
             <input class="date-input" [(ngModel)]="dashboardDate" type="date" (change)="loadDashboard()" title="Fecha del dashboard">
+            <button class="secondary compact" (click)="downloadCashClosurePdf(data)" [disabled]="!data.cashClosure" title="Descargar cierre de caja">
+              <svg lucideDownload size="16"></svg>
+              Cierre
+            </button>
+            <button class="primary compact" (click)="closeCash(data)" [disabled]="savingCashClosure()" title="Cerrar caja">
+              <svg lucideSave size="16"></svg>
+              {{ data.cashClosure ? 'Actualizar cierre' : 'Cerrar caja' }}
+            </button>
             <button class="secondary compact" (click)="downloadWeekPdf(data)" title="Descargar reporte semanal">
               <svg lucideDownload size="16"></svg>
               Semana
@@ -453,8 +461,22 @@
           <article class="metric"><span>Ventas registradas</span><strong>{{ money(data.todaySales) }}</strong><small>Fecha de venta seleccionada</small></article>
           <article class="metric"><span>Semana</span><strong>{{ money(data.weekSales) }}</strong><small>{{ dashboardWeekOrders(data) }} cuentas</small></article>
           <article class="metric"><span>Mes a la fecha</span><strong>{{ money(data.monthSales) }}</strong><small>Ventas registradas del mes</small></article>
-          <article class="metric warn"><span>Pendiente</span><strong>{{ money(data.pendingAmount) }}</strong><small>Cuentas por cobrar</small></article>
+          <article class="metric warn"><span>Pendiente del dia</span><strong>{{ money(data.todayPending) }}</strong><small>{{ money(data.pendingAmount) }} acumulado del mes</small></article>
           <article class="metric"><span>Mejor medio hoy</span><strong>{{ dashboardBestPaymentMethod(data) }}</strong><small>Por cobros registrados</small></article>
+        </section>
+
+        <section class="panel cash-close-panel" [class.closed]="data.cashClosure">
+          <div>
+            <span>{{ data.cashClosure ? 'Caja cerrada' : 'Caja abierta' }}</span>
+            <h2>{{ data.cashClosure ? (data.cashClosure.closedAt | date:'short') : 'Pendiente de cierre' }}</h2>
+            <p>{{ data.cashClosure ? ('Cerrado por ' + data.cashClosure.closedBy) : 'Revisa cobros, pendientes y medios de pago antes de cerrar.' }}</p>
+          </div>
+          <div class="cash-close-stats">
+            <strong>{{ money(data.cashClosure?.totalPaid || dashboardTodayPaid(data)) }}</strong>
+            <small>Cobrado</small>
+            <strong>{{ money(data.cashClosure?.totalPending || data.todayPending) }}</strong>
+            <small>Pendiente</small>
+          </div>
         </section>
 
         <section class="panel payment-donut-panel">

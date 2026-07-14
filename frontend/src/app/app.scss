@@ -1159,6 +1159,56 @@ nav button.active {
   color: #a7352a;
 }
 
+.cash-close-panel {
+  align-items: center;
+  background: #fffdf8;
+  border-color: #d8c2a0;
+  display: flex;
+  grid-column: span 7;
+  justify-content: space-between;
+  min-height: 150px;
+}
+
+.cash-close-panel.closed {
+  background: #f3faf6;
+  border-color: #bddbc9;
+}
+
+.cash-close-panel span {
+  color: var(--brand);
+  font-size: 12px;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.cash-close-panel h2 {
+  color: #17211e;
+  font-size: 24px;
+  margin-top: 6px;
+}
+
+.cash-close-panel p {
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.cash-close-stats {
+  align-items: end;
+  display: grid;
+  gap: 4px;
+  min-width: 160px;
+  text-align: right;
+}
+
+.cash-close-stats strong {
+  color: #173c34;
+  font-size: 22px;
+}
+
+.cash-close-stats small {
+  color: var(--muted);
+}
+
 .payment-donut-panel {
   grid-column: span 5;
   min-height: 290px;
@@ -1356,6 +1406,7 @@ nav button.active {
   }
 
   .dashboard-summary,
+  .cash-close-panel,
   .payment-donut-panel,
   .payment-method-panel,
   .payment-method-panel + .payment-method-panel {
@@ -1434,6 +1485,16 @@ nav button.active {
 
   .hero-metric {
     grid-column: 1;
+  }
+
+  .cash-close-panel {
+    align-items: stretch;
+    display: grid;
+    gap: 14px;
+  }
+
+  .cash-close-stats {
+    text-align: left;
   }
 
   .bar-row small,

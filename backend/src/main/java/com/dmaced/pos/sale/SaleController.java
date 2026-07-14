@@ -1,12 +1,15 @@
 package com.dmaced.pos.sale;
 
 import com.dmaced.pos.sale.SaleDtos.DashboardResponse;
+import com.dmaced.pos.sale.SaleDtos.CashClosureRequest;
+import com.dmaced.pos.sale.SaleDtos.CashClosureResponse;
 import com.dmaced.pos.sale.SaleDtos.PaymentRequest;
 import com.dmaced.pos.sale.SaleDtos.SaleRequest;
 import com.dmaced.pos.sale.SaleDtos.SaleResponse;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -74,5 +77,10 @@ public class SaleController {
   @GetMapping("/dashboard")
   DashboardResponse dashboard(@RequestParam(required = false) LocalDate date) {
     return saleService.dashboard(date);
+  }
+
+  @PostMapping("/cash-closure")
+  CashClosureResponse closeCash(@RequestParam(required = false) LocalDate date, @RequestBody(required = false) CashClosureRequest request, Authentication authentication) {
+    return saleService.closeCash(date, request, authentication == null ? "admin" : authentication.getName());
   }
 }

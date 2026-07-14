@@ -76,8 +76,25 @@ public class SaleDtos {
       long payments,
       BigDecimal total) {}
 
+  public record CashClosureRequest(String note) {}
+
+  public record CashClosureResponse(
+      Long id,
+      LocalDate businessDate,
+      LocalDateTime closedAt,
+      String closedBy,
+      String note,
+      BigDecimal totalSales,
+      BigDecimal totalPaid,
+      BigDecimal totalPending,
+      long orders,
+      long paidOrders,
+      long pendingOrders,
+      List<PaymentMethodSummary> paymentsByMethod) {}
+
   public record DashboardResponse(
       BigDecimal todaySales,
+      BigDecimal todayPending,
       BigDecimal weekSales,
       BigDecimal monthSales,
       BigDecimal pendingAmount,
@@ -85,5 +102,6 @@ public class SaleDtos {
       List<DailySummary> weekByDay,
       List<PaymentMethodSummary> todayPaymentsByMethod,
       List<PaymentMethodSummary> weekPaymentsByMethod,
-      List<PaymentMethodSummary> monthPaymentsByMethod) {}
+      List<PaymentMethodSummary> monthPaymentsByMethod,
+      CashClosureResponse cashClosure) {}
 }

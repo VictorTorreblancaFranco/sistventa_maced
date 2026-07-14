@@ -3,6 +3,8 @@ package com.dmaced.pos.sale;
 import com.dmaced.pos.product.Product;
 import com.dmaced.pos.product.ProductCategory;
 import com.dmaced.pos.product.ProductRepository;
+import com.dmaced.pos.sale.SaleDtos.CashClosureRequest;
+import com.dmaced.pos.sale.SaleDtos.CashClosureResponse;
 import com.dmaced.pos.sale.SaleDtos.DailySummary;
 import com.dmaced.pos.sale.SaleDtos.DashboardResponse;
 import com.dmaced.pos.sale.SaleDtos.PaymentMethodSummary;
@@ -36,10 +38,12 @@ public class SaleService {
 
   private final SaleRepository saleRepository;
   private final ProductRepository productRepository;
+  private final CashClosureRepository cashClosureRepository;
 
-  public SaleService(SaleRepository saleRepository, ProductRepository productRepository) {
+  public SaleService(SaleRepository saleRepository, ProductRepository productRepository, CashClosureRepository cashClosureRepository) {
     this.saleRepository = saleRepository;
     this.productRepository = productRepository;
+    this.cashClosureRepository = cashClosureRepository;
   }
 
   @Transactional
@@ -154,6 +158,7 @@ public class SaleService {
 
     return new DashboardResponse(
         sumTotal(daySales),
+        daySales.stream().map(Sale::getRemaining).reduce(ZERO, BigDecimal::add),
         sumTotal(weekSales),
         sumTotal(monthSales),
         monthSales.stream().map(Sale::getRemaining).reduce(ZERO, BigDecimal::add),
@@ -161,7 +166,33 @@ public class SaleService {
         weekByDay,
         summarizePaymentsByMethod(dayPayments, reportDate.atStartOfDay(), reportDate.atTime(LocalTime.MAX)),
         summarizePaymentsByMethod(weekPayments, weekStart.atStartOfDay(), reportDate.atTime(LocalTime.MAX)),
-        summarizePaymentsByMethod(monthPayments, monthStart.atStartOfDay(), reportDate.atTime(LocalTime.MAX)));
+        summarizePaymentsByMethod(monthPayments, monthStart.atStartOfDay(), reportDate.atTime(LocalTime.MAX)),
+        cashClosureRepository.findByBusinessDate(reportDate).map(this::toCashClosureResponse).orElse(null));
+  }
+
+  @Transactional
+  public CashClosureResponse closeCash(LocalDate date, CashClosureRequest request, String username) {
+    LocalDate reportDate = date == null ? LocalDate.now(APP_ZONE) : date;
+    List<Sale> daySales = saleRepository.findByCreatedAtBetweenOrderByCreatedAtDesc(
+        reportDate.atStartOfDay(), reportDate.atTime(LocalTime.MAX));
+    List<Sale> dayPayments = saleRepository.findDistinctByPaymentsPaidAtBetweenOrderByCreatedAtDesc(
+        reportDate.atStartOfDay(), reportDate.atTime(LocalTime.MAX));
+    List<PaymentMethodSummary> paymentSummary = summarizePaymentsByMethod(
+        dayPayments, reportDate.atStartOfDay(), reportDate.atTime(LocalTime.MAX));
+
+    CashClosure closure = cashClosureRepository.findByBusinessDate(reportDate).orElseGet(CashClosure::new);
+    closure.setBusinessDate(reportDate);
+    closure.setClosedAt(LocalDateTime.now(APP_ZONE));
+    closure.setClosedBy(username == null || username.isBlank() ? "admin" : username);
+    closure.setNote(cleanNote(request == null ? null : request.note()));
+    closure.setTotalSales(sumTotal(daySales));
+    closure.setTotalPaid(sumPaymentsOnDate(dayPayments, reportDate));
+    closure.setTotalPending(daySales.stream().map(Sale::getRemaining).reduce(ZERO, BigDecimal::add));
+    closure.setOrders(daySales.size());
+    closure.setPaidOrders(daySales.stream().filter(sale -> sale.getRemaining().compareTo(ZERO) == 0).count());
+    closure.setPendingOrders(daySales.stream().filter(sale -> sale.getRemaining().compareTo(ZERO) > 0).count());
+    applyPaymentSummary(closure, paymentSummary);
+    return toCashClosureResponse(cashClosureRepository.save(closure));
   }
 
   private boolean containsTakeawayContainer(SaleRequest request) {
@@ -376,6 +407,49 @@ public class SaleService {
           totals.get(method)));
     }
     return summaries;
+  }
+
+  private void applyPaymentSummary(CashClosure closure, List<PaymentMethodSummary> summaries) {
+    for (PaymentMethodSummary summary : summaries) {
+      switch (summary.method()) {
+        case EFECTIVO -> {
+          closure.setEfectivoTotal(summary.total());
+          closure.setEfectivoSales(summary.sales());
+        }
+        case YAPE -> {
+          closure.setYapeTotal(summary.total());
+          closure.setYapeSales(summary.sales());
+        }
+        case QR -> {
+          closure.setQrTotal(summary.total());
+          closure.setQrSales(summary.sales());
+        }
+        case VISA -> {
+          closure.setVisaTotal(summary.total());
+          closure.setVisaSales(summary.sales());
+        }
+      }
+    }
+  }
+
+  private CashClosureResponse toCashClosureResponse(CashClosure closure) {
+    return new CashClosureResponse(
+        closure.getId(),
+        closure.getBusinessDate(),
+        closure.getClosedAt(),
+        closure.getClosedBy(),
+        closure.getNote(),
+        closure.getTotalSales(),
+        closure.getTotalPaid(),
+        closure.getTotalPending(),
+        closure.getOrders(),
+        closure.getPaidOrders(),
+        closure.getPendingOrders(),
+        List.of(
+            new PaymentMethodSummary(PaymentMethod.EFECTIVO, PaymentMethod.EFECTIVO.getLabel(), closure.getEfectivoSales(), closure.getEfectivoSales(), closure.getEfectivoTotal()),
+            new PaymentMethodSummary(PaymentMethod.YAPE, PaymentMethod.YAPE.getLabel(), closure.getYapeSales(), closure.getYapeSales(), closure.getYapeTotal()),
+            new PaymentMethodSummary(PaymentMethod.QR, PaymentMethod.QR.getLabel(), closure.getQrSales(), closure.getQrSales(), closure.getQrTotal()),
+            new PaymentMethodSummary(PaymentMethod.VISA, PaymentMethod.VISA.getLabel(), closure.getVisaSales(), closure.getVisaSales(), closure.getVisaTotal())));
   }
 
   private SaleResponse toResponse(Sale sale) {
