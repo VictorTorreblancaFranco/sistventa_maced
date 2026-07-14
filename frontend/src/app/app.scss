@@ -1437,7 +1437,7 @@ nav button.active {
 
 .schedule-screen .staff-layout {
   align-items: start;
-  grid-template-columns: minmax(900px, 1fr) minmax(280px, 330px);
+  grid-template-columns: minmax(840px, 1fr) minmax(330px, 380px);
   margin-top: 12px;
   min-height: auto;
   overflow: visible;
@@ -1471,7 +1471,7 @@ nav button.active {
 }
 
 .schedule-screen .staff-main {
-  min-width: 900px;
+  min-width: 840px;
   overflow: visible;
 }
 
@@ -1497,6 +1497,32 @@ nav button.active {
 .staff-head .dashboard-actions {
   flex-wrap: wrap;
   justify-content: flex-end;
+}
+
+.week-input {
+  align-items: center;
+  background: #fffdf8;
+  border: 1px solid #ded4c5;
+  border-radius: 8px;
+  display: flex;
+  gap: 8px;
+  min-height: 34px;
+  padding: 0 8px;
+}
+
+.week-input span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.week-input input {
+  background: transparent;
+  border: 0;
+  font-weight: 800;
+  min-height: 28px;
+  padding: 0;
+  width: 132px;
 }
 
 .staff-metrics {
@@ -1844,8 +1870,8 @@ nav button.active {
 .schedule-day-editor {
   align-items: center;
   display: grid;
-  gap: 8px;
-  grid-template-columns: minmax(0, 1fr) 104px 86px;
+  gap: 6px 8px;
+  grid-template-columns: minmax(92px, 1fr) 132px;
 }
 
 .schedule-day-editor input[type='time'] {
@@ -1853,7 +1879,10 @@ nav button.active {
 }
 
 .double-shift {
+  grid-column: 1 / -1;
   font-size: 12px;
+  justify-self: start;
+  padding-left: 24px;
 }
 
 .date-pair {

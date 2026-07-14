@@ -1491,6 +1491,19 @@ export class App implements OnInit {
     });
   }
 
+  staffWeekValue(): string {
+    return this.isoWeekValue(this.staffWeekDate);
+  }
+
+  changeStaffWeek(value: string): void {
+    const monday = this.mondayFromIsoWeek(value);
+    if (!monday) {
+      return;
+    }
+    this.staffWeekDate = monday;
+    this.loadStaffWeek();
+  }
+
   openRoleDialog(): void {
     Swal.fire({
       title: 'Crear rol',
@@ -2012,7 +2025,8 @@ export class App implements OnInit {
   employeeRoleName(employee: Employee): string {
     const role = employee.roleName || '';
     const normalized = this.normalize(role);
-    if (employee.gender === 'FEMALE') {
+    const female = employee.gender === 'FEMALE' || this.looksFemaleName(employee.name);
+    if (female) {
       if (normalized.includes('bartender')) return 'Barwoman';
       if (normalized.includes('cajero')) return 'Cajera';
       if (normalized.includes('mozo')) return 'Moza';
@@ -2022,6 +2036,15 @@ export class App implements OnInit {
       return 'Cajero';
     }
     return role;
+  }
+
+  private looksFemaleName(name: string): boolean {
+    const first = this.normalize(name).split(/\s+/)[0];
+    return [
+      'ana', 'andrea', 'angela', 'carla', 'carmen', 'cristhina', 'cristina', 'diana',
+      'elena', 'helen', 'karla', 'lucia', 'maria', 'melissa', 'paola', 'rosa',
+      'silvia', 'sofia', 'valeria', 'vanessa', 'ximena'
+    ].includes(first);
   }
 
   selectedEmployee(): Employee | null {
@@ -2221,6 +2244,27 @@ export class App implements OnInit {
     const month = String(now.getMonth() + 1).padStart(2, '0');
     const day = String(now.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+  }
+
+  private isoWeekValue(dateString: string): string {
+    const date = new Date(`${dateString}T00:00:00`);
+    date.setDate(date.getDate() + 4 - (date.getDay() || 7));
+    const yearStart = new Date(date.getFullYear(), 0, 1);
+    const week = Math.ceil((((date.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+    return `${date.getFullYear()}-W${String(week).padStart(2, '0')}`;
+  }
+
+  private mondayFromIsoWeek(value: string): string | null {
+    const match = /^(\d{4})-W(\d{2})$/.exec(value || '');
+    if (!match) {
+      return null;
+    }
+    const year = Number(match[1]);
+    const week = Number(match[2]);
+    const date = new Date(year, 0, 1 + (week - 1) * 7);
+    const day = date.getDay() || 7;
+    date.setDate(date.getDate() + (day <= 4 ? 1 - day : 8 - day));
+    return this.dateInputFromDate(date);
   }
 
   private normalize(value: string): string {

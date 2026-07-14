@@ -509,7 +509,10 @@
           <p>Semana laboral, descansos, permisos, faltas y vacaciones.</p>
         </div>
         <div class="dashboard-actions">
-          <input class="date-input" [(ngModel)]="staffWeekDate" type="date" (change)="loadStaffWeek()" title="Semana del horario">
+          <label class="week-input" title="Semana del horario">
+            <span>Semana</span>
+            <input [ngModel]="staffWeekValue()" type="week" (ngModelChange)="changeStaffWeek($event)">
+          </label>
           <button class="secondary compact" (click)="downloadStaffScheduleImage()" [disabled]="!staffWeek()" title="Descargar horario">
             <svg lucideDownload size="16"></svg>
             Imagen

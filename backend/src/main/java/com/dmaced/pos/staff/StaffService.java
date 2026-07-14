@@ -207,7 +207,7 @@ public class StaffService {
   private void applyEmployee(Employee employee, EmployeeRequest request) {
     employee.setName(request.name().trim());
     employee.setRole(roleRepository.findById(request.roleId()).orElseThrow());
-    employee.setGender(normalizeGender(request.gender()));
+    employee.setGender(resolveGender(request.gender(), request.name()));
     employee.setActive(request.active() == null || request.active());
     employee.setInactiveReason(employee.isActive() ? null : clean(request.inactiveReason()));
     employee.setDeactivatedAt(employee.isActive() ? null : LocalDateTime.now());
@@ -280,7 +280,7 @@ public class StaffService {
   }
 
   private EmployeeResponse toEmployee(Employee employee) {
-    return new EmployeeResponse(employee.getId(), employee.getName(), employee.getRole().getId(), employee.getRole().getName(), normalizeGender(employee.getGender()), employee.isActive(), employee.getInactiveReason());
+    return new EmployeeResponse(employee.getId(), employee.getName(), employee.getRole().getId(), employee.getRole().getName(), resolveGender(employee.getGender(), employee.getName()), employee.isActive(), employee.getInactiveReason());
   }
 
   private ScheduleResponse toSchedule(EmployeeSchedule schedule) {
@@ -304,8 +304,26 @@ public class StaffService {
     return value == null || value.isBlank() ? null : value.trim();
   }
 
-  private String normalizeGender(String gender) {
-    return "FEMALE".equalsIgnoreCase(clean(gender)) ? "FEMALE" : "MALE";
+  private String resolveGender(String gender, String name) {
+    String cleaned = clean(gender);
+    if ("FEMALE".equalsIgnoreCase(cleaned)) {
+      return "FEMALE";
+    }
+    if ("MALE".equalsIgnoreCase(cleaned)) {
+      return "MALE";
+    }
+    return looksFemaleName(name) ? "FEMALE" : "MALE";
+  }
+
+  private boolean looksFemaleName(String name) {
+    String cleaned = clean(name);
+    if (cleaned == null) {
+      return false;
+    }
+    String first = cleaned.toLowerCase(Locale.ROOT).split("\\s+")[0];
+    return List.of("ana", "andrea", "angela", "carla", "carmen", "cristhina", "cristina", "diana",
+        "elena", "helen", "karla", "lucia", "maria", "melissa", "paola", "rosa",
+        "silvia", "sofia", "valeria", "vanessa", "ximena").contains(first);
   }
 
   private String shiftLabel(LocalTime startTime, boolean doubleShift) {

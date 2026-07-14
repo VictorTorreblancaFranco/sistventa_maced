@@ -21,7 +21,7 @@ public class Employee {
   @ManyToOne(fetch = FetchType.LAZY)
   private StaffRole role;
 
-  private String gender = "MALE";
+  private String gender;
   private boolean active = true;
   private String inactiveReason;
   private LocalDateTime deactivatedAt;
