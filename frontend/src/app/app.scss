@@ -1665,8 +1665,8 @@ nav button.active {
 }
 
 .staff-row.active .staff-person {
-  border-color: var(--brand);
-  box-shadow: inset 3px 0 0 var(--brand);
+  background: #f3faf6;
+  border-color: #b8d8ca;
 }
 
 .staff-person,
@@ -1693,7 +1693,8 @@ nav button.active {
 
 .staff-day {
   align-content: center;
-  border-left-width: 4px;
+  border-left-width: 0;
+  box-shadow: inset 5px 0 0 transparent;
 }
 
 .staff-day b {
@@ -1716,32 +1717,91 @@ nav button.active {
 }
 
 .staff-day.working {
-  border-left-color: var(--brand);
+  background: #effaf4;
+  border-color: #b9decf;
+  box-shadow: inset 5px 0 0 #1f7a5f;
+  --export-bg: #dff5e9;
+  --export-color: #123c31;
+  --export-line: #1f7a5f;
 }
 
 .staff-day.rest {
-  background: #f5f1ea;
-  border-left-color: #9c9489;
+  background: #fff0ed;
+  border-color: #ecc3bb;
+  box-shadow: inset 5px 0 0 #b34336;
+  --export-bg: #ffe3df;
+  --export-color: #5d1d17;
+  --export-line: #b34336;
 }
 
 .staff-day.permission {
   background: #fff8ea;
-  border-left-color: #d99d45;
+  border-color: #eed29b;
+  box-shadow: inset 5px 0 0 #d99d45;
+  --export-bg: #fff1cf;
+  --export-color: #5b3a07;
+  --export-line: #d99d45;
 }
 
 .staff-day.absent {
   background: #fff0ed;
-  border-left-color: var(--danger);
+  border-color: #e6b6ad;
+  box-shadow: inset 5px 0 0 var(--danger);
+  --export-bg: #ffe3df;
+  --export-color: #5d1d17;
+  --export-line: #b34336;
 }
 
 .staff-day.vacation {
   background: #eef5ff;
-  border-left-color: #425b9f;
+  border-color: #bccbeb;
+  box-shadow: inset 5px 0 0 #425b9f;
+  --export-bg: #e2ecff;
+  --export-color: #1d2d5c;
+  --export-line: #425b9f;
 }
 
 .staff-day.changed {
   background: #f0faf4;
-  border-left-color: #25a06f;
+  border-color: #b9decf;
+  box-shadow: inset 5px 0 0 #25a06f;
+  --export-bg: #dff5e9;
+  --export-color: #123c31;
+  --export-line: #25a06f;
+}
+
+.schedule-exporting {
+  background: #fff;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 22px;
+  width: 1600px;
+}
+
+.schedule-exporting .staff-table-head,
+.schedule-exporting .staff-row {
+  gap: 7px;
+  grid-template-columns: 230px repeat(7, 1fr);
+}
+
+.schedule-exporting .staff-table-head span,
+.schedule-exporting .staff-person,
+.schedule-exporting .staff-day {
+  border-radius: 4px;
+  min-height: 72px;
+  padding: 10px 12px;
+}
+
+.schedule-exporting .staff-row.active .staff-person {
+  background: #fffdf8;
+  border-color: #e8dfd1;
+  box-shadow: none;
+}
+
+.schedule-exporting .staff-day {
+  background: var(--export-bg);
+  border-color: var(--export-line);
+  color: var(--export-color);
 }
 
 .staff-form,

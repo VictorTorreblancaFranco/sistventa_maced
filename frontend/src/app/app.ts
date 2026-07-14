@@ -1868,11 +1868,20 @@ export class App implements OnInit {
     if (!element) {
       return;
     }
-    const canvas = await html2canvas(element, { backgroundColor: '#ffffff', scale: 2 });
-    const link = document.createElement('a');
-    link.download = `bar-dmaced-horario-${this.staffWeek()?.weekStart || this.staffWeekDate}.png`;
-    link.href = canvas.toDataURL('image/png');
-    link.click();
+    element.classList.add('schedule-exporting');
+    try {
+      const canvas = await html2canvas(element, {
+        backgroundColor: '#ffffff',
+        scale: 2,
+        windowWidth: Math.max(element.scrollWidth + 40, 1600)
+      });
+      const link = document.createElement('a');
+      link.download = `bar-dmaced-horario-${this.staffWeek()?.weekStart || this.staffWeekDate}.png`;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } finally {
+      element.classList.remove('schedule-exporting');
+    }
   }
 
   resetExceptionForm(): void {
