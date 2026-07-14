@@ -581,22 +581,40 @@ export class App implements OnInit {
     }
     const amount = Math.min(received, remaining);
     const change = Math.max(0, received - remaining);
-    this.savingHistoryPayment.set(true);
-    this.http.post<Sale>(`${this.api}/sales/${sale.id}/payments`, {
-      method: this.historyPaymentMethod,
-      amount
-    }, this.options()).subscribe(updated => {
-      this.selectedSale.set(updated);
-      this.historyPaymentAmount = '';
-      this.loadSales();
-      this.loadDashboard();
-      if (change > 0) {
-        Swal.fire('Pago registrado', `Vuelto: ${this.money(change)}`, 'success');
+    Swal.fire({
+      title: 'Confirmar pago',
+      html: `
+        <div style="display:grid;gap:8px;text-align:left">
+          <p style="display:flex;justify-content:space-between;margin:0"><b>Venta:</b><span>#${sale.id}</span></p>
+          <p style="display:flex;justify-content:space-between;margin:0"><b>Metodo:</b><span>${this.methodLabel(this.historyPaymentMethod)}</span></p>
+          <p style="display:flex;justify-content:space-between;margin:0"><b>Recibido:</b><span>${this.money(received)}</span></p>
+          <p style="display:flex;justify-content:space-between;margin:0"><b>Se registrara:</b><span>${this.money(amount)}</span></p>
+          <p style="display:flex;justify-content:space-between;margin:0"><b>Vuelto:</b><span>${this.money(change)}</span></p>
+        </div>
+      `,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'Confirmar pago',
+      cancelButtonText: 'Cancelar'
+    }).then(result => {
+      if (!result.isConfirmed) {
+        return;
       }
-    }, error => {
-      Swal.fire('No se pudo registrar', this.errorMessage(error), 'error');
-    }).add(() => {
-      this.savingHistoryPayment.set(false);
+      this.savingHistoryPayment.set(true);
+      this.http.post<Sale>(`${this.api}/sales/${sale.id}/payments`, {
+        method: this.historyPaymentMethod,
+        amount
+      }, this.options()).subscribe(updated => {
+        this.selectedSale.set(updated);
+        this.historyPaymentAmount = '';
+        this.loadSales();
+        this.loadDashboard();
+        Swal.fire('Pago registrado', change > 0 ? `Vuelto: ${this.money(change)}` : `Registrado: ${this.money(amount)}`, 'success');
+      }, error => {
+        Swal.fire('No se pudo registrar', this.errorMessage(error), 'error');
+      }).add(() => {
+        this.savingHistoryPayment.set(false);
+      });
     });
   }
 
