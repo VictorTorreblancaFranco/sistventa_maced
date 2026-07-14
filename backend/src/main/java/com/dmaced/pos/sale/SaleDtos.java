@@ -69,11 +69,21 @@ public class SaleDtos {
 
   public record DailySummary(LocalDate date, BigDecimal total, BigDecimal paid, long sales) {}
 
+  public record PaymentMethodSummary(
+      PaymentMethod method,
+      String label,
+      long sales,
+      long payments,
+      BigDecimal total) {}
+
   public record DashboardResponse(
       BigDecimal todaySales,
       BigDecimal weekSales,
       BigDecimal monthSales,
       BigDecimal pendingAmount,
       long todayOrders,
-      List<DailySummary> weekByDay) {}
+      List<DailySummary> weekByDay,
+      List<PaymentMethodSummary> todayPaymentsByMethod,
+      List<PaymentMethodSummary> weekPaymentsByMethod,
+      List<PaymentMethodSummary> monthPaymentsByMethod) {}
 }

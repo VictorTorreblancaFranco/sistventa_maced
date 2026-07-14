@@ -455,7 +455,45 @@
         <article class="metric"><span>Mes a la fecha</span><strong>{{ money(data.monthSales) }}</strong><small>Ventas registradas del mes</small></article>
         <article class="metric warn"><span>Pendiente</span><strong>{{ money(data.pendingAmount) }}</strong><small>Cuentas por cobrar</small></article>
         <article class="metric"><span>Mejor fecha semana</span><strong>{{ dashboardBestDay(data) }}</strong><small>Por fecha de venta registrada</small></article>
-        <article class="metric muted-metric"><span>Productos activos</span><strong>{{ productCounts().active }}</strong><small>{{ productCounts().inactive }} inactivos</small></article>
+        <article class="metric"><span>Mejor medio hoy</span><strong>{{ dashboardBestPaymentMethod(data) }}</strong><small>Por cobros registrados</small></article>
+        <div class="panel payment-method-panel">
+          <header class="section-head tight">
+            <div>
+              <h2>Medios de pago hoy</h2>
+              <p>Cantidad de ventas y total cobrado por metodo.</p>
+            </div>
+          </header>
+          <div class="payment-method-row" *ngFor="let method of data.todayPaymentsByMethod">
+            <span>{{ method.label }}</span>
+            <div><i [style.width.%]="paymentMethodWidth(method, data.todayPaymentsByMethod)"></i></div>
+            <b>{{ money(method.total) }}</b>
+            <small>{{ paymentMethodDetail(method) }}</small>
+          </div>
+        </div>
+        <div class="panel payment-method-panel">
+          <header class="section-head tight">
+            <div>
+              <h2>Semana y mes</h2>
+              <p>Comparativo de cobros por medio de pago.</p>
+            </div>
+          </header>
+          <div class="payment-compare-grid">
+            <div>
+              <strong>Semana</strong>
+              <div class="mini-method-row" *ngFor="let method of data.weekPaymentsByMethod">
+                <span>{{ method.label }}</span>
+                <b>{{ method.sales }} · {{ money(method.total) }}</b>
+              </div>
+            </div>
+            <div>
+              <strong>Mes</strong>
+              <div class="mini-method-row" *ngFor="let method of data.monthPaymentsByMethod">
+                <span>{{ method.label }}</span>
+                <b>{{ method.sales }} · {{ money(method.total) }}</b>
+              </div>
+            </div>
+          </div>
+        </div>
         <div class="panel week-panel">
           <header class="section-head tight">
             <div>

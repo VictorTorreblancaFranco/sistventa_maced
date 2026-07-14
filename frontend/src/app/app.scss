@@ -1165,6 +1165,66 @@ nav button.active {
   overflow: auto;
 }
 
+.payment-method-panel {
+  grid-column: span 2;
+  overflow: auto;
+}
+
+.payment-method-row {
+  align-items: center;
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 116px minmax(110px, 1fr) 96px minmax(130px, auto);
+}
+
+.payment-method-row div {
+  background: #eee6da;
+  border-radius: 999px;
+  height: 10px;
+  overflow: hidden;
+}
+
+.payment-method-row i {
+  background: linear-gradient(90deg, #25745f, #d99d45);
+  display: block;
+  height: 100%;
+}
+
+.payment-method-row small,
+.mini-method-row span {
+  color: var(--muted);
+}
+
+.payment-method-row b,
+.mini-method-row b {
+  text-align: right;
+}
+
+.payment-compare-grid {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.payment-compare-grid > div {
+  display: grid;
+  gap: 8px;
+}
+
+.payment-compare-grid strong {
+  color: #173c34;
+  font-size: 13px;
+}
+
+.mini-method-row {
+  align-items: center;
+  border-bottom: 1px solid #eee6da;
+  display: flex;
+  font-size: 13px;
+  justify-content: space-between;
+  padding-bottom: 6px;
+}
+
 .bar-row {
   align-items: center;
   display: grid;
@@ -1217,6 +1277,10 @@ nav button.active {
   .dashboard {
     height: auto;
     grid-template-columns: 1fr;
+  }
+
+  .payment-method-panel {
+    grid-column: 1;
   }
 
   .content {
@@ -1273,11 +1337,15 @@ nav button.active {
   .promo-panel,
   .product-filters,
   .cart-item,
-  .bar-row {
+  .bar-row,
+  .payment-method-row,
+  .payment-compare-grid {
     grid-template-columns: 1fr;
   }
 
-  .bar-row small {
+  .bar-row small,
+  .payment-method-row b,
+  .payment-method-row small {
     text-align: left;
   }
 }

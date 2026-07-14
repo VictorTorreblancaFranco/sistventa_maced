@@ -100,6 +100,17 @@ interface Dashboard {
   pendingAmount: number;
   todayOrders: number;
   weekByDay: Array<{ date: string; total: number; paid: number; sales: number }>;
+  todayPaymentsByMethod: PaymentMethodSummary[];
+  weekPaymentsByMethod: PaymentMethodSummary[];
+  monthPaymentsByMethod: PaymentMethodSummary[];
+}
+
+interface PaymentMethodSummary {
+  method: PaymentMethod;
+  label: string;
+  sales: number;
+  payments: number;
+  total: number;
 }
 
 @Component({
@@ -747,7 +758,7 @@ export class App implements OnInit {
     const paid = sales.reduce((sum, sale) => sum + Number(sale.paid), 0);
     const pending = sales.reduce((sum, sale) => sum + Number(sale.remaining), 0);
     const paidCount = sales.filter(sale => this.saleStatusLabel(sale) === 'PAGADA').length;
-    const paymentsByMethod = this.paymentTotalsByMethod(sales);
+    const paymentsByMethod = this.paymentStatsByMethod(sales);
     let y = 14;
 
     const footer = () => {
@@ -798,8 +809,9 @@ export class App implements OnInit {
 
       pdf.setFontSize(9);
       pdf.setTextColor(80, 80, 76);
-      pdf.text(`Cobrado: ${this.money(paid)}   Efectivo: ${this.money(paymentsByMethod.EFECTIVO)}   QR: ${this.money(paymentsByMethod.QR)}   Yape Silvia: ${this.money(paymentsByMethod.YAPE)}   Visa: ${this.money(paymentsByMethod.VISA)}`, margin, y);
-      y += 9;
+      const paymentSummaryLines = pdf.splitTextToSize(`Cobrado: ${this.money(paid)}   ${this.paymentStatsLine(paymentsByMethod)}`, pageWidth - margin * 2);
+      pdf.text(paymentSummaryLines, margin, y);
+      y += 5 + paymentSummaryLines.length * 4;
     };
 
     const addTableHeader = () => {
@@ -865,13 +877,31 @@ export class App implements OnInit {
     pdf.save(`bar-dmaced-reporte-${this.historyDate}.pdf`);
   }
 
-  private paymentTotalsByMethod(sales: Sale[]): Record<PaymentMethod, number> {
-    return sales.reduce<Record<PaymentMethod, number>>((totals, sale) => {
+  private paymentStatsByMethod(sales: Sale[]): Record<PaymentMethod, { total: number; sales: number }> {
+    const stats: Record<PaymentMethod, { total: number; sales: number; saleIds: Set<number> }> = {
+      EFECTIVO: { total: 0, sales: 0, saleIds: new Set<number>() },
+      QR: { total: 0, sales: 0, saleIds: new Set<number>() },
+      YAPE: { total: 0, sales: 0, saleIds: new Set<number>() },
+      VISA: { total: 0, sales: 0, saleIds: new Set<number>() }
+    };
+    sales.forEach(sale => {
       sale.payments.forEach(payment => {
-        totals[payment.method] += Number(payment.amount);
+        stats[payment.method].total += Number(payment.amount);
+        stats[payment.method].saleIds.add(sale.id);
       });
-      return totals;
-    }, { EFECTIVO: 0, QR: 0, YAPE: 0, VISA: 0 });
+    });
+    return {
+      EFECTIVO: { total: stats.EFECTIVO.total, sales: stats.EFECTIVO.saleIds.size },
+      QR: { total: stats.QR.total, sales: stats.QR.saleIds.size },
+      YAPE: { total: stats.YAPE.total, sales: stats.YAPE.saleIds.size },
+      VISA: { total: stats.VISA.total, sales: stats.VISA.saleIds.size }
+    };
+  }
+
+  private paymentStatsLine(stats: Record<PaymentMethod, { total: number; sales: number }>): string {
+    return (['EFECTIVO', 'QR', 'YAPE', 'VISA'] as PaymentMethod[])
+      .map(method => `${this.methodLabel(method)}: ${stats[method].sales} ventas / ${this.money(stats[method].total)}`)
+      .join('   ');
   }
 
   private saleDetailSummary(sale: Sale): string {
@@ -905,7 +935,7 @@ export class App implements OnInit {
     const paid = allSales.reduce((sum, sale) => sum + Number(sale.paid), 0);
     const pending = allSales.reduce((sum, sale) => sum + Number(sale.remaining), 0);
     const paidCount = allSales.filter(sale => this.saleStatusLabel(sale) === 'PAGADA').length;
-    const paymentsByMethod = this.paymentTotalsByMethod(allSales);
+    const paymentsByMethod = this.paymentStatsByMethod(allSales);
     const weekStart = dates[0];
     const weekEnd = dates[dates.length - 1];
     let y = 14;
@@ -963,8 +993,9 @@ export class App implements OnInit {
 
     pdf.setFontSize(9);
     pdf.setTextColor(80, 80, 76);
-    pdf.text(`Metodos: efectivo ${this.money(paymentsByMethod.EFECTIVO)} · QR ${this.money(paymentsByMethod.QR)} · Yape Silvia ${this.money(paymentsByMethod.YAPE)} · Visa ${this.money(paymentsByMethod.VISA)}`, margin, y);
-    y += 10;
+    const paymentSummaryLines = pdf.splitTextToSize(`Metodos: ${this.paymentStatsLine(paymentsByMethod)}`, pageWidth - margin * 2);
+    pdf.text(paymentSummaryLines, margin, y);
+    y += 6 + paymentSummaryLines.length * 4;
 
     pdf.setFont('helvetica', 'bold');
     pdf.setFontSize(11);
@@ -1156,6 +1187,26 @@ export class App implements OnInit {
       return 'Sin ventas';
     }
     return `${this.shortDate(best.date)} · ${this.money(best.total)}`;
+  }
+
+  dashboardBestPaymentMethod(data: Dashboard): string {
+    const best = [...data.todayPaymentsByMethod].sort((a, b) => Number(b.total) - Number(a.total))[0];
+    if (!best || Number(best.total) === 0) {
+      return 'Sin cobros';
+    }
+    return `${best.label} · ${this.money(best.total)}`;
+  }
+
+  paymentMethodMax(rows: PaymentMethodSummary[]): number {
+    return Math.max(1, ...rows.map(row => Number(row.total)));
+  }
+
+  paymentMethodWidth(row: PaymentMethodSummary, rows: PaymentMethodSummary[]): number {
+    return (Number(row.total) / this.paymentMethodMax(rows)) * 100;
+  }
+
+  paymentMethodDetail(row: PaymentMethodSummary): string {
+    return `${row.sales} venta${Number(row.sales) === 1 ? '' : 's'} · ${row.payments} pago${Number(row.payments) === 1 ? '' : 's'}`;
   }
 
   shortDate(value: string): string {
