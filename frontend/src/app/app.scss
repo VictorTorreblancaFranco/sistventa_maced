@@ -1384,7 +1384,7 @@ nav button.active {
 
 .people-screen {
   align-content: start;
-  grid-template-rows: auto auto;
+  grid-template-rows: auto minmax(0, 1fr);
 }
 
 .staff-layout,
@@ -1409,6 +1409,7 @@ nav button.active {
 
 .people-screen .staff-people-view {
   align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(240px, 300px);
   overflow: visible;
 }
 
@@ -1451,6 +1452,15 @@ nav button.active {
   min-height: 96px;
 }
 
+.people-screen .staff-metrics {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.people-screen .staff-metrics .metric {
+  align-content: center;
+  min-height: 82px;
+}
+
 .staff-board-panel {
   align-content: start;
   display: grid;
@@ -1468,7 +1478,16 @@ nav button.active {
 
 .people-screen .staff-people-panel,
 .people-screen .staff-roles-panel {
+  align-content: start;
   overflow: visible;
+}
+
+.people-screen .staff-people-panel {
+  min-height: 220px;
+}
+
+.people-screen .staff-roles-panel {
+  min-height: 0;
 }
 
 .staff-people-grid {
@@ -1485,14 +1504,17 @@ nav button.active {
 }
 
 .staff-empty {
+  align-items: center;
   background: #fffdf8;
   border: 1px dashed #ddd3c4;
   border-radius: 10px;
   color: var(--muted);
+  display: grid;
   font-weight: 800;
   grid-column: 1 / -1;
   margin: 0;
-  padding: 22px 14px;
+  min-height: 108px;
+  padding: 16px 14px;
   text-align: center;
 }
 
@@ -1501,6 +1523,7 @@ nav button.active {
 }
 
 .role-chip-list {
+  align-content: start;
   display: flex;
   flex-wrap: wrap;
   gap: 8px;
