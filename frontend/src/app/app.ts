@@ -23,7 +23,8 @@ import {
 } from '@lucide/angular';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
-import { forkJoin } from 'rxjs';
+import { Observable, forkJoin, throwError } from 'rxjs';
+import { catchError, switchMap } from 'rxjs/operators';
 import Swal from 'sweetalert2';
 
 type Tab = 'sale' | 'products' | 'history' | 'dashboard' | 'staffSchedule' | 'staffEmployees';
@@ -1446,10 +1447,10 @@ export class App implements OnInit {
   }
 
   loadStaff(): void {
-    forkJoin({
+    this.staffRequest(() => forkJoin({
       roles: this.http.get<StaffRole[]>(`${this.api}/staff/roles`, this.options()),
       employees: this.http.get<Employee[]>(`${this.api}/staff/employees`, this.options())
-    }).subscribe({
+    })).subscribe({
       next: ({ roles, employees }) => {
         this.staffRoles.set(roles);
         this.employees.set(employees);
@@ -1466,7 +1467,7 @@ export class App implements OnInit {
   }
 
   loadStaffWeek(showError = true): void {
-    this.http.get<StaffWeek>(`${this.api}/staff/week?date=${this.staffWeekDate}`, this.options()).subscribe({
+    this.staffRequest(() => this.http.get<StaffWeek>(`${this.api}/staff/week?date=${this.staffWeekDate}`, this.options())).subscribe({
       next: week => this.staffWeek.set(week),
       error: error => {
         this.staffWeek.set(null);
@@ -1502,7 +1503,7 @@ export class App implements OnInit {
         return;
       }
       this.savingStaff.set(true);
-      this.http.post<StaffRole>(`${this.api}/staff/roles`, result.value, this.options()).subscribe({
+      this.staffRequest(() => this.http.post<StaffRole>(`${this.api}/staff/roles`, result.value, this.options())).subscribe({
         next: role => {
           this.employeeForm.roleId = role.id;
           this.loadStaff();
@@ -1555,9 +1556,9 @@ export class App implements OnInit {
         return;
       }
       this.savingStaff.set(true);
-      const request = employee
+      const request = this.staffRequest(() => employee
         ? this.http.put<Employee>(`${this.api}/staff/employees/${employee.id}`, result.value, this.options())
-        : this.http.post<Employee>(`${this.api}/staff/employees`, result.value, this.options());
+        : this.http.post<Employee>(`${this.api}/staff/employees`, result.value, this.options()));
       request.subscribe({
         next: saved => {
           this.loadStaff();
@@ -2064,6 +2065,27 @@ export class App implements OnInit {
       return 'Yape Silvia Navarro';
     }
     return 'Visa';
+  }
+
+  private staffRequest<T>(requestFactory: () => Observable<T>): Observable<T> {
+    return requestFactory().pipe(
+      catchError(error => {
+        if (error?.status !== 401 && error?.status !== 403) {
+          return throwError(() => error);
+        }
+        return this.http.post<AuthResponse>(`${this.api}/auth/refresh`, {}, this.options()).pipe(
+          switchMap(response => {
+            this.storeSession(response);
+            return requestFactory();
+          }),
+          catchError(refreshError => {
+            this.logout();
+            Swal.fire('Sesion vencida', 'Vuelve a iniciar sesion para administrar personal.', 'warning');
+            return throwError(() => refreshError);
+          })
+        );
+      })
+    );
   }
 
   private options() {
