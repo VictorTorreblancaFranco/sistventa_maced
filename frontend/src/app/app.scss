@@ -712,6 +712,13 @@ nav button.active {
   width: 30px;
 }
 
+.payment-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+}
+
 .ticket-payment-row {
   align-items: center;
   display: grid;
@@ -1054,6 +1061,40 @@ nav button.active {
 .ticket th:nth-child(3),
 .ticket td:nth-child(3) {
   text-align: right;
+}
+
+.ticket-payments {
+  border: 1px solid #e8dfd1;
+  border-radius: 8px;
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+}
+
+.ticket-payments > strong {
+  font-size: 13px;
+  text-align: left;
+}
+
+.ticket-payment-line {
+  align-items: center;
+  display: flex;
+  font-size: 13px;
+  justify-content: space-between;
+}
+
+.ticket-payment-line b {
+  font-weight: 800;
+}
+
+.ticket-payment-line.muted-line {
+  color: var(--muted);
+}
+
+.ticket-payment-line.total-line {
+  border-top: 1px solid #ece3d8;
+  margin-top: 2px;
+  padding-top: 6px;
 }
 
 .grand {

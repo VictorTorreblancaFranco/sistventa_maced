@@ -866,7 +866,7 @@ export class App implements OnInit {
     if (!sale.payments.length) {
       return 'Sin pagos';
     }
-    return sale.payments.map(payment => `${payment.methodLabel} ${this.money(payment.amount)}`).join(' · ');
+    return sale.payments.map(payment => `${payment.methodLabel}: ${this.money(payment.amount)}`).join(' · ');
   }
 
   downloadWeekPdf(data: Dashboard): void {
@@ -1055,7 +1055,23 @@ export class App implements OnInit {
       <div class="ticket-total grand"><span>Total</span><b>${this.money(sale.total)}</b></div>
       <div class="ticket-total"><span>Pagado</span><b>${this.money(sale.paid)}</b></div>
       <div class="ticket-total"><span>Pendiente</span><b>${this.money(sale.remaining)}</b></div>
-      ${sale.payments.map(payment => `<p>Pago: ${this.escapeHtml(payment.methodLabel)} · ${this.money(payment.amount)}</p>`).join('')}
+      <div class="ticket-payments">
+        <strong>Forma de pago</strong>
+        ${
+          sale.payments.length
+            ? sale.payments.map(payment => `
+              <div class="ticket-payment-line">
+                <span>${this.escapeHtml(payment.methodLabel)}</span>
+                <b>${this.money(payment.amount)}</b>
+              </div>
+            `).join('')
+            : `<div class="ticket-payment-line muted-line"><span>Sin pagos registrados</span><b>${this.money(0)}</b></div>`
+        }
+        <div class="ticket-payment-line total-line">
+          <span>Total pagado</span>
+          <b>${this.money(sale.paid)}</b>
+        </div>
+      </div>
     `;
     return element;
   }

@@ -374,15 +374,34 @@
             <div class="ticket-total grand"><span>Total</span><b>{{ money(sale.total) }}</b></div>
             <div class="ticket-total"><span>Pagado</span><b>{{ money(sale.paid) }}</b></div>
             <div class="ticket-total"><span>{{ saleStatusLabel(sale) === 'PAGADA' ? 'Estado' : 'Pendiente' }}</span><b>{{ saleStatusLabel(sale) === 'PAGADA' ? 'Pagada' : money(sale.remaining) }}</b></div>
-            <div class="ticket-payment-row" *ngFor="let payment of sale.payments">
-              <span>Pago: {{ payment.methodLabel }} · {{ money(payment.amount) }}</span>
-              <button class="secondary icon-action" (click)="editHistoryPayment(sale, payment)" title="Editar pago">
-                <svg lucidePencil size="14"></svg>
-              </button>
-              <button class="danger icon-action" (click)="deleteHistoryPayment(sale, payment)" title="Revertir pago">
-                <svg lucideTrash2 size="14"></svg>
-              </button>
+            <div class="ticket-payments">
+              <strong>Forma de pago</strong>
+              <ng-container *ngIf="sale.payments.length; else noTicketPayments">
+                <div class="ticket-payment-line" *ngFor="let payment of sale.payments">
+                  <span>{{ payment.methodLabel }}</span>
+                  <b>{{ money(payment.amount) }}</b>
+                </div>
+              </ng-container>
+              <ng-template #noTicketPayments>
+                <div class="ticket-payment-line muted-line">
+                  <span>Sin pagos registrados</span>
+                  <b>{{ money(0) }}</b>
+                </div>
+              </ng-template>
+              <div class="ticket-payment-line total-line">
+                <span>Total pagado</span>
+                <b>{{ money(sale.paid) }}</b>
+              </div>
             </div>
+          </div>
+
+          <div class="payment-actions" *ngIf="sale.payments.length">
+            <button class="secondary icon-action" *ngFor="let payment of sale.payments" (click)="editHistoryPayment(sale, payment)" title="Editar {{ payment.methodLabel }} {{ money(payment.amount) }}">
+              <svg lucidePencil size="14"></svg>
+            </button>
+            <button class="danger icon-action" *ngFor="let payment of sale.payments" (click)="deleteHistoryPayment(sale, payment)" title="Revertir {{ payment.methodLabel }} {{ money(payment.amount) }}">
+              <svg lucideTrash2 size="14"></svg>
+            </button>
           </div>
 
           <div class="payment-row">
