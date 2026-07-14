@@ -143,6 +143,7 @@ interface Employee {
   name: string;
   roleId: number;
   roleName: string;
+  gender?: 'MALE' | 'FEMALE';
   active: boolean;
   inactiveReason?: string;
 }
@@ -154,6 +155,7 @@ interface StaffSchedule {
   dayOfWeek: string;
   working: boolean;
   startTime?: string;
+  doubleShift?: boolean;
 }
 
 interface StaffException {
@@ -178,6 +180,7 @@ interface StaffWeek {
       dayOfWeek: string;
       working: boolean;
       startTime?: string;
+      doubleShift?: boolean;
       status: string;
       note?: string;
       exceptionType?: StaffExceptionType;
@@ -262,6 +265,7 @@ export class App implements OnInit {
     id: 0,
     name: '',
     roleId: 0,
+    gender: 'MALE' as 'MALE' | 'FEMALE',
     active: true,
     inactiveReason: ''
   };
@@ -1522,6 +1526,7 @@ export class App implements OnInit {
       return;
     }
     const selectedRole = employee?.roleId || this.employeeForm.roleId || roles[0].id;
+    const selectedGender = employee?.gender || 'MALE';
     const roleOptions = roles
       .map(role => `<option value="${role.id}" ${role.id === selectedRole ? 'selected' : ''}>${this.escapeHtml(role.name)}</option>`)
       .join('');
@@ -1533,6 +1538,11 @@ export class App implements OnInit {
           <input id="employee-name" value="${this.escapeHtml(employee?.name || '')}" placeholder="Nombre del colaborador">
           <label>Rol</label>
           <select id="employee-role">${roleOptions}</select>
+          <label>Género</label>
+          <select id="employee-gender">
+            <option value="MALE" ${selectedGender === 'MALE' ? 'selected' : ''}>Hombre</option>
+            <option value="FEMALE" ${selectedGender === 'FEMALE' ? 'selected' : ''}>Mujer</option>
+          </select>
         </div>
       `,
       showCancelButton: true,
@@ -1541,6 +1551,7 @@ export class App implements OnInit {
       preConfirm: () => {
         const name = (document.getElementById('employee-name') as HTMLInputElement)?.value.trim();
         const roleId = Number((document.getElementById('employee-role') as HTMLSelectElement)?.value);
+        const gender = ((document.getElementById('employee-gender') as HTMLSelectElement)?.value || 'MALE') as 'MALE' | 'FEMALE';
         if (!name || !roleId) {
           Swal.showValidationMessage('Ingresa nombre y rol.');
           return false;
@@ -1548,6 +1559,7 @@ export class App implements OnInit {
         return {
           name,
           roleId,
+          gender,
           active: employee?.active ?? true,
           inactiveReason: employee?.inactiveReason || ''
         };
@@ -1687,6 +1699,7 @@ export class App implements OnInit {
     const payload = {
       name: this.employeeForm.name.trim(),
       roleId: Number(this.employeeForm.roleId),
+      gender: this.employeeForm.gender,
       active: this.employeeForm.active,
       inactiveReason: this.employeeForm.inactiveReason
     };
@@ -1709,6 +1722,7 @@ export class App implements OnInit {
       id: employee.id,
       name: employee.name,
       roleId: employee.roleId,
+      gender: employee.gender || 'MALE',
       active: employee.active,
       inactiveReason: employee.inactiveReason || ''
     };
@@ -1720,6 +1734,7 @@ export class App implements OnInit {
       id: 0,
       name: '',
       roleId: this.staffRoles()[0]?.id || 0,
+      gender: 'MALE',
       active: true,
       inactiveReason: ''
     };
@@ -1752,7 +1767,8 @@ export class App implements OnInit {
     const payload = {
       dayOfWeek: day.dayOfWeek,
       working: day.working,
-      startTime: day.working ? day.startTime || '18:00' : null
+      startTime: day.working ? day.startTime || '18:00' : null,
+      doubleShift: day.working ? !!day.doubleShift : false
     };
     this.http.put<StaffSchedule>(`${this.api}/staff/employees/${employeeId}/schedule`, payload, this.options()).subscribe({
       next: updated => {
@@ -1871,9 +1887,11 @@ export class App implements OnInit {
     element.classList.add('schedule-exporting');
     try {
       const canvas = await html2canvas(element, {
-        backgroundColor: '#ffffff',
+        backgroundColor: '#fff',
         scale: 2,
-        windowWidth: Math.max(element.scrollWidth + 40, 1600)
+        width: element.scrollWidth,
+        height: element.scrollHeight,
+        windowWidth: Math.max(element.scrollWidth, element.clientWidth)
       });
       const link = document.createElement('a');
       link.download = `bar-dmaced-horario-${this.staffWeek()?.weekStart || this.staffWeekDate}.png`;
@@ -1932,6 +1950,7 @@ export class App implements OnInit {
         date: this.dateInputFromDate(date),
         dayOfWeek,
         working: false,
+        doubleShift: false,
         status: '',
         note: ''
       };
@@ -1965,6 +1984,36 @@ export class App implements OnInit {
       return 'changed';
     }
     return day.working ? 'working' : 'rest';
+  }
+
+  staffDayLabel(day: StaffWeek['rows'][number]['days'][number]): string {
+    if (!day.working) {
+      return day.status || 'Descanso';
+    }
+    if (day.doubleShift) {
+      return 'Dobleteo';
+    }
+    const hour = Number((day.startTime || '').slice(0, 2));
+    return Number.isFinite(hour) && hour < 15 ? 'Apertura' : 'Cierre';
+  }
+
+  staffTimeLabel(time?: string): string {
+    return time ? time.slice(0, 5) : 'No disponible';
+  }
+
+  employeeRoleName(employee: Employee): string {
+    const role = employee.roleName || '';
+    const normalized = this.normalize(role);
+    if (employee.gender === 'FEMALE') {
+      if (normalized.includes('bartender')) return 'Barwoman';
+      if (normalized.includes('cajero')) return 'Cajera';
+      if (normalized.includes('mozo')) return 'Moza';
+      if (normalized.includes('cocinero')) return 'Cocinera';
+    }
+    if (employee.gender === 'MALE' && normalized.includes('cajera')) {
+      return 'Cajero';
+    }
+    return role;
   }
 
   selectedEmployee(): Employee | null {

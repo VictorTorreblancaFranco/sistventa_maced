@@ -23,6 +23,7 @@ public class EmployeeSchedule {
   private DayOfWeek dayOfWeek;
   private boolean working = true;
   private LocalTime startTime;
+  private boolean doubleShift;
 
   public Long getId() { return id; }
   public void setId(Long id) { this.id = id; }
@@ -34,4 +35,6 @@ public class EmployeeSchedule {
   public void setWorking(boolean working) { this.working = working; }
   public LocalTime getStartTime() { return startTime; }
   public void setStartTime(LocalTime startTime) { this.startTime = startTime; }
+  public boolean isDoubleShift() { return doubleShift; }
+  public void setDoubleShift(boolean doubleShift) { this.doubleShift = doubleShift; }
 }

@@ -132,6 +132,7 @@ public class StaffService {
     });
     schedule.setWorking(request.working());
     schedule.setStartTime(request.working() ? request.startTime() : null);
+    schedule.setDoubleShift(request.working() && request.doubleShift());
     return toSchedule(scheduleRepository.save(schedule));
   }
 
@@ -188,17 +189,20 @@ public class StaffService {
       if (exception != null) {
         boolean works = exception.getType() == AbsenceType.CAMBIO_TURNO;
         LocalTime start = works ? exception.getStartTime() : null;
-        return new StaffDayResponse(date, day, works, start, exception.getType().getLabel(), exception.getNote(), exception.getType(), exception.getId());
+        return new StaffDayResponse(date, day, works, start, false, works ? shiftLabel(start, false) : exception.getType().getLabel(), exception.getNote(), exception.getType(), exception.getId());
       }
       EmployeeSchedule schedule = schedules.stream().filter(item -> item.getDayOfWeek() == day).findFirst().orElse(null);
       boolean works = schedule != null && schedule.isWorking();
-      return new StaffDayResponse(date, day, works, works ? schedule.getStartTime() : null, works ? "Trabaja" : "Descanso", null, null, null);
+      LocalTime start = works ? schedule.getStartTime() : null;
+      boolean doubleShift = works && schedule.isDoubleShift();
+      return new StaffDayResponse(date, day, works, start, doubleShift, works ? shiftLabel(start, doubleShift) : "Descanso", null, null, null);
     }).toList();
   }
 
   private void applyEmployee(Employee employee, EmployeeRequest request) {
     employee.setName(request.name().trim());
     employee.setRole(roleRepository.findById(request.roleId()).orElseThrow());
+    employee.setGender(normalizeGender(request.gender()));
     employee.setActive(request.active() == null || request.active());
     employee.setInactiveReason(employee.isActive() ? null : clean(request.inactiveReason()));
     employee.setDeactivatedAt(employee.isActive() ? null : LocalDateTime.now());
@@ -211,6 +215,7 @@ public class StaffService {
       schedule.setDayOfWeek(day);
       schedule.setWorking(day != DayOfWeek.MONDAY);
       schedule.setStartTime(day == DayOfWeek.MONDAY ? null : LocalTime.of(18, 0));
+      schedule.setDoubleShift(false);
       scheduleRepository.save(schedule);
     }
   }
@@ -250,11 +255,11 @@ public class StaffService {
   }
 
   private EmployeeResponse toEmployee(Employee employee) {
-    return new EmployeeResponse(employee.getId(), employee.getName(), employee.getRole().getId(), employee.getRole().getName(), employee.isActive(), employee.getInactiveReason());
+    return new EmployeeResponse(employee.getId(), employee.getName(), employee.getRole().getId(), employee.getRole().getName(), normalizeGender(employee.getGender()), employee.isActive(), employee.getInactiveReason());
   }
 
   private ScheduleResponse toSchedule(EmployeeSchedule schedule) {
-    return new ScheduleResponse(schedule.getId(), schedule.getDayOfWeek(), schedule.isWorking(), schedule.getStartTime());
+    return new ScheduleResponse(schedule.getId(), schedule.getDayOfWeek(), schedule.isWorking(), schedule.getStartTime(), schedule.isDoubleShift());
   }
 
   private ExceptionResponse toException(EmployeeException exception) {
@@ -272,5 +277,19 @@ public class StaffService {
 
   private String clean(String value) {
     return value == null || value.isBlank() ? null : value.trim();
+  }
+
+  private String normalizeGender(String gender) {
+    return "FEMALE".equalsIgnoreCase(clean(gender)) ? "FEMALE" : "MALE";
+  }
+
+  private String shiftLabel(LocalTime startTime, boolean doubleShift) {
+    if (doubleShift) {
+      return "Dobleteo";
+    }
+    if (startTime != null && startTime.isBefore(LocalTime.of(15, 0))) {
+      return "Apertura";
+    }
+    return "Cierre";
   }
 }

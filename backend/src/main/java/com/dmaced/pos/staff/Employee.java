@@ -21,6 +21,7 @@ public class Employee {
   @ManyToOne(fetch = FetchType.LAZY)
   private StaffRole role;
 
+  private String gender = "MALE";
   private boolean active = true;
   private String inactiveReason;
   private LocalDateTime deactivatedAt;
@@ -31,6 +32,8 @@ public class Employee {
   public void setName(String name) { this.name = name; }
   public StaffRole getRole() { return role; }
   public void setRole(StaffRole role) { this.role = role; }
+  public String getGender() { return gender; }
+  public void setGender(String gender) { this.gender = gender; }
   public boolean isActive() { return active; }
   public void setActive(boolean active) { this.active = active; }
   public String getInactiveReason() { return inactiveReason; }

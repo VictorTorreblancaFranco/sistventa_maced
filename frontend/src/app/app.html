@@ -467,7 +467,7 @@
             <article class="employee-card person-card" *ngFor="let employee of employees()" [class.inactive]="!employee.active" [class.active]="selectedEmployeeId() === employee.id" (click)="selectEmployee(employee)">
               <div>
                 <strong>{{ employee.name }}</strong>
-                <small>{{ employee.roleName }} · {{ employee.active ? 'Activo' : 'Desactivado' }}</small>
+                <small>{{ employeeRoleName(employee) }} · {{ employee.active ? 'Activo' : 'Desactivado' }}</small>
                 <em *ngIf="employee.inactiveReason">{{ employee.inactiveReason }}</em>
               </div>
               <div class="sale-actions">
@@ -525,7 +525,7 @@
                 <h2>Horario semanal</h2>
                 <p *ngIf="staffWeek() as week">{{ formatReportDate(week.weekStart) }} al {{ formatReportDate(week.weekEnd) }}</p>
               </div>
-              <strong>{{ activeEmployeesCount() }} activos</strong>
+              <strong>{{ activeEmployeesCount() }} colaboradores</strong>
             </header>
 
             <div class="staff-table" *ngIf="staffWeek() as week">
@@ -539,11 +539,11 @@
               <button class="staff-row" *ngFor="let row of week.rows" (click)="selectEmployee(row.employee)" [class.active]="selectedEmployeeId() === row.employee.id">
                 <span class="staff-person">
                   <b>{{ row.employee.name }}</b>
-                  <small>{{ row.employee.roleName }}</small>
+                  <small>{{ employeeRoleName(row.employee) }}</small>
                 </span>
                 <span class="staff-day" *ngFor="let day of row.days" [class]="staffDayClass(day)">
-                  <b>{{ day.status }}</b>
-                  <small>{{ day.working && day.startTime ? day.startTime : 'No disponible' }}</small>
+                  <b>{{ staffDayLabel(day) }}</b>
+                  <small>{{ day.working ? staffTimeLabel(day.startTime) : 'No disponible' }}</small>
                   <em *ngIf="day.note">{{ day.note }}</em>
                 </span>
               </button>
@@ -569,6 +569,10 @@
                 {{ fullDayName(day.dayOfWeek) }}
               </label>
               <input [(ngModel)]="day.startTime" [name]="'time' + day.dayOfWeek" type="time" [disabled]="!day.working" (change)="updateSchedule(day)">
+              <label class="check double-shift">
+                <input [(ngModel)]="day.doubleShift" [name]="'double' + day.dayOfWeek" type="checkbox" [disabled]="!day.working" (change)="updateSchedule(day)">
+                Dobleteo
+              </label>
             </div>
           </section>
 

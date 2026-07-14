@@ -1525,6 +1525,7 @@ nav button.active {
   max-height: 100%;
   min-height: 0;
   overflow: hidden;
+  padding-top: 18px;
 }
 
 .schedule-screen .staff-board-panel {
@@ -1754,24 +1755,7 @@ nav button.active {
 
 .schedule-exporting {
   background: #fff;
-  border-radius: 0;
   box-shadow: none;
-  padding: 22px;
-  width: 1600px;
-}
-
-.schedule-exporting .staff-table-head,
-.schedule-exporting .staff-row {
-  gap: 7px;
-  grid-template-columns: 230px repeat(7, 1fr);
-}
-
-.schedule-exporting .staff-table-head span,
-.schedule-exporting .staff-person,
-.schedule-exporting .staff-day {
-  border-radius: 4px;
-  min-height: 72px;
-  padding: 10px 12px;
 }
 
 .schedule-exporting .staff-row.active .staff-person {
@@ -1862,11 +1846,15 @@ nav button.active {
   align-items: center;
   display: grid;
   gap: 8px;
-  grid-template-columns: minmax(0, 1fr) 108px;
+  grid-template-columns: minmax(0, 1fr) 104px 86px;
 }
 
 .schedule-day-editor input[type='time'] {
   min-width: 0;
+}
+
+.double-shift {
+  font-size: 12px;
 }
 
 .date-pair {
