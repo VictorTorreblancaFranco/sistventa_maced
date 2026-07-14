@@ -1557,8 +1557,8 @@ nav button.active {
 .staff-people-grid {
   align-content: start;
   display: grid;
-  gap: 10px;
-  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 8px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
   min-height: 0;
   overflow: auto;
 }
@@ -1583,7 +1583,7 @@ nav button.active {
 }
 
 .person-card {
-  min-height: 96px;
+  min-height: 68px;
 }
 
 .role-chip-list {
@@ -1612,7 +1612,7 @@ nav button.active {
 .staff-table {
   align-content: start;
   display: grid;
-  gap: 8px;
+  gap: 6px;
   min-width: 0;
   overflow: auto;
   padding-bottom: 12px;
@@ -1626,7 +1626,7 @@ nav button.active {
 .staff-row {
   align-items: stretch;
   display: grid;
-  gap: 6px;
+  gap: 5px;
   grid-template-columns: minmax(128px, 1.2fr) repeat(7, minmax(72px, 1fr));
 }
 
@@ -1646,8 +1646,8 @@ nav button.active {
   border-radius: 8px;
   display: grid;
   gap: 2px;
-  min-height: 54px;
-  padding: 8px 7px;
+  min-height: 44px;
+  padding: 6px 7px;
 }
 
 .staff-table-head small {
@@ -1659,7 +1659,7 @@ nav button.active {
 .staff-row {
   background: transparent;
   color: var(--ink);
-  min-height: 74px;
+  min-height: 58px;
   padding: 0;
   text-align: left;
 }
@@ -1673,11 +1673,11 @@ nav button.active {
 .staff-day {
   background: #fffdf8;
   border: 1px solid #e8dfd1;
-  border-radius: 9px;
+  border-radius: 8px;
   display: grid;
-  gap: 3px;
+  gap: 2px;
   min-width: 0;
-  padding: 8px;
+  padding: 6px 8px;
 }
 
 .staff-person {
@@ -1694,7 +1694,7 @@ nav button.active {
 .staff-day {
   align-content: center;
   border-left-width: 0;
-  box-shadow: inset 5px 0 0 transparent;
+  box-shadow: inset 4px 0 0 transparent;
 }
 
 .staff-day b {
@@ -1719,55 +1719,37 @@ nav button.active {
 .staff-day.working {
   background: #effaf4;
   border-color: #b9decf;
-  box-shadow: inset 5px 0 0 #1f7a5f;
-  --export-bg: #dff5e9;
-  --export-color: #123c31;
-  --export-line: #1f7a5f;
+  box-shadow: inset 4px 0 0 #1f7a5f;
 }
 
 .staff-day.rest {
   background: #fff0ed;
   border-color: #ecc3bb;
-  box-shadow: inset 5px 0 0 #b34336;
-  --export-bg: #ffe3df;
-  --export-color: #5d1d17;
-  --export-line: #b34336;
+  box-shadow: inset 4px 0 0 #b34336;
 }
 
 .staff-day.permission {
   background: #fff8ea;
   border-color: #eed29b;
-  box-shadow: inset 5px 0 0 #d99d45;
-  --export-bg: #fff1cf;
-  --export-color: #5b3a07;
-  --export-line: #d99d45;
+  box-shadow: inset 4px 0 0 #d99d45;
 }
 
 .staff-day.absent {
   background: #fff0ed;
   border-color: #e6b6ad;
-  box-shadow: inset 5px 0 0 var(--danger);
-  --export-bg: #ffe3df;
-  --export-color: #5d1d17;
-  --export-line: #b34336;
+  box-shadow: inset 4px 0 0 var(--danger);
 }
 
 .staff-day.vacation {
   background: #eef5ff;
   border-color: #bccbeb;
-  box-shadow: inset 5px 0 0 #425b9f;
-  --export-bg: #e2ecff;
-  --export-color: #1d2d5c;
-  --export-line: #425b9f;
+  box-shadow: inset 4px 0 0 #425b9f;
 }
 
 .staff-day.changed {
   background: #f0faf4;
   border-color: #b9decf;
-  box-shadow: inset 5px 0 0 #25a06f;
-  --export-bg: #dff5e9;
-  --export-color: #123c31;
-  --export-line: #25a06f;
+  box-shadow: inset 4px 0 0 #25a06f;
 }
 
 .schedule-exporting {
@@ -1796,12 +1778,6 @@ nav button.active {
   background: #fffdf8;
   border-color: #e8dfd1;
   box-shadow: none;
-}
-
-.schedule-exporting .staff-day {
-  background: var(--export-bg);
-  border-color: var(--export-line);
-  color: var(--export-color);
 }
 
 .staff-form,
@@ -1836,12 +1812,12 @@ nav button.active {
   align-items: center;
   background: #fffdf8;
   border: 1px solid #e8dfd1;
-  border-radius: 9px;
+  border-radius: 8px;
   cursor: pointer;
   display: grid;
-  gap: 8px;
+  gap: 10px;
   grid-template-columns: minmax(0, 1fr) auto;
-  padding: 9px;
+  padding: 10px 12px;
 }
 
 .employee-card.active {
@@ -1852,6 +1828,34 @@ nav button.active {
 .employee-card.inactive {
   background: #f4f0ea;
   opacity: .78;
+}
+
+.employee-card > div:first-child {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+
+.employee-card strong {
+  display: block;
+  font-size: 16px;
+  line-height: 1.1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-card small {
+  display: block;
+  font-size: 13px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.employee-card .sale-actions {
+  flex: 0 0 auto;
 }
 
 .schedule-day-editor {
