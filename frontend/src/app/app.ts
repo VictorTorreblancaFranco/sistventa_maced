@@ -1473,6 +1473,105 @@ export class App implements OnInit {
     });
   }
 
+  openRoleDialog(): void {
+    Swal.fire({
+      title: 'Crear rol',
+      html: `
+        <div class="modal-form">
+          <label>Nombre del rol</label>
+          <input id="staff-role-name" class="swal2-input" placeholder="Anfitrion, cajero...">
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Guardar',
+      cancelButtonText: 'Cancelar',
+      preConfirm: () => {
+        const name = (document.getElementById('staff-role-name') as HTMLInputElement)?.value.trim();
+        if (!name) {
+          Swal.showValidationMessage('Escribe el nombre del rol.');
+          return false;
+        }
+        return { name };
+      }
+    }).then(result => {
+      if (!result.isConfirmed || !result.value) {
+        return;
+      }
+      this.savingStaff.set(true);
+      this.http.post<StaffRole>(`${this.api}/staff/roles`, result.value, this.options()).subscribe({
+        next: role => {
+          this.employeeForm.roleId = role.id;
+          this.loadStaff();
+          Swal.fire('Rol guardado', 'Ya puedes asignarlo a un colaborador.', 'success');
+        },
+        error: error => Swal.fire('No se pudo guardar', this.errorMessage(error), 'error')
+      }).add(() => this.savingStaff.set(false));
+    });
+  }
+
+  openEmployeeDialog(employee?: Employee): void {
+    const roles = this.staffRoles();
+    if (!roles.length) {
+      Swal.fire('Sin roles', 'Primero crea un rol para asignar colaboradores.', 'info');
+      return;
+    }
+    const selectedRole = employee?.roleId || this.employeeForm.roleId || roles[0].id;
+    const roleOptions = roles
+      .map(role => `<option value="${role.id}" ${role.id === selectedRole ? 'selected' : ''}>${this.escapeHtml(role.name)}</option>`)
+      .join('');
+    Swal.fire({
+      title: employee ? 'Editar colaborador' : 'Agregar colaborador',
+      html: `
+        <div class="modal-form">
+          <label>Nombre</label>
+          <input id="employee-name" class="swal2-input" value="${this.escapeHtml(employee?.name || '')}" placeholder="Nombre del colaborador">
+          <label>Rol</label>
+          <select id="employee-role" class="swal2-select">${roleOptions}</select>
+          <label class="modal-check">
+            <input id="employee-active" type="checkbox" ${employee?.active !== false ? 'checked' : ''}>
+            Activo
+          </label>
+          <label>Motivo si esta desactivado</label>
+          <textarea id="employee-reason" class="swal2-textarea" placeholder="Motivo">${this.escapeHtml(employee?.inactiveReason || '')}</textarea>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'Guardar',
+      cancelButtonText: 'Cancelar',
+      preConfirm: () => {
+        const name = (document.getElementById('employee-name') as HTMLInputElement)?.value.trim();
+        const roleId = Number((document.getElementById('employee-role') as HTMLSelectElement)?.value);
+        const active = (document.getElementById('employee-active') as HTMLInputElement)?.checked;
+        const inactiveReason = (document.getElementById('employee-reason') as HTMLTextAreaElement)?.value.trim();
+        if (!name || !roleId) {
+          Swal.showValidationMessage('Ingresa nombre y rol.');
+          return false;
+        }
+        if (!active && !inactiveReason) {
+          Swal.showValidationMessage('Ingresa el motivo si esta desactivado.');
+          return false;
+        }
+        return { name, roleId, active, inactiveReason };
+      }
+    }).then(result => {
+      if (!result.isConfirmed || !result.value) {
+        return;
+      }
+      this.savingStaff.set(true);
+      const request = employee
+        ? this.http.put<Employee>(`${this.api}/staff/employees/${employee.id}`, result.value, this.options())
+        : this.http.post<Employee>(`${this.api}/staff/employees`, result.value, this.options());
+      request.subscribe({
+        next: saved => {
+          this.loadStaff();
+          this.selectEmployee(saved);
+          Swal.fire('Colaborador guardado', 'El horario ya puede administrarse.', 'success');
+        },
+        error: error => Swal.fire('No se pudo guardar', this.errorMessage(error), 'error')
+      }).add(() => this.savingStaff.set(false));
+    });
+  }
+
   saveRole(): void {
     const name = this.roleName.trim();
     if (!name) {

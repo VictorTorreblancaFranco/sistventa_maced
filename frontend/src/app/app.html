@@ -442,6 +442,14 @@
           </div>
           <div class="dashboard-actions">
             <input class="date-input" [(ngModel)]="staffWeekDate" type="date" (change)="loadStaffWeek()" title="Semana del horario">
+            <button class="primary compact" (click)="openEmployeeDialog()" title="Agregar colaborador">
+              <svg lucidePlus size="16"></svg>
+              Colaborador
+            </button>
+            <button class="secondary compact" (click)="openRoleDialog()" title="Crear rol">
+              <svg lucideUsers size="16"></svg>
+              Rol
+            </button>
             <button class="secondary compact" (click)="downloadStaffScheduleImage()" [disabled]="!staffWeek()" title="Descargar horario">
               <svg lucideDownload size="16"></svg>
               Imagen
@@ -501,58 +509,34 @@
       </div>
 
       <aside class="staff-side">
-        <form class="panel staff-form" (ngSubmit)="saveEmployee()">
-          <header class="section-head tight">
-            <div>
-              <h2>{{ employeeForm.id ? 'Editar colaborador' : 'Nuevo colaborador' }}</h2>
-              <p>Solo datos internos, sin acceso al sistema.</p>
-            </div>
-          </header>
-          <label>Nombre<input [(ngModel)]="employeeForm.name" name="employeeName" required></label>
-          <label>Rol
-            <select [(ngModel)]="employeeForm.roleId" name="employeeRole" required>
-              <option *ngFor="let role of staffRoles()" [ngValue]="role.id">{{ role.name }}</option>
-            </select>
-          </label>
-          <label class="check"><input [(ngModel)]="employeeForm.active" name="employeeActive" type="checkbox">Activo</label>
-          <label *ngIf="!employeeForm.active">Motivo<input [(ngModel)]="employeeForm.inactiveReason" name="inactiveReason" placeholder="Motivo"></label>
-          <div class="form-actions">
-            <button class="primary" type="submit" [disabled]="savingStaff()"><svg lucideSave size="16"></svg>Guardar</button>
-            <button class="secondary" type="button" (click)="resetEmployeeForm()">Limpiar</button>
-          </div>
-        </form>
-
-        <form class="panel role-form" (ngSubmit)="saveRole()">
-          <label>Crear rol
-            <div class="inline-field">
-              <input [(ngModel)]="roleName" name="roleName" placeholder="Anfitrión, cajero...">
-              <button class="secondary icon-only" type="submit" [disabled]="savingStaff()" title="Agregar rol">
-                <svg lucidePlus size="16"></svg>
-              </button>
-            </div>
-          </label>
-        </form>
-
         <section class="panel employee-list">
           <header class="section-head tight">
-            <h2>Colaboradores</h2>
-          </header>
-          <article class="employee-card" *ngFor="let employee of employees()" [class.inactive]="!employee.active" [class.active]="selectedEmployeeId() === employee.id" (click)="selectEmployee(employee)">
             <div>
-              <strong>{{ employee.name }}</strong>
-              <small>{{ employee.roleName }} · {{ employee.active ? 'Activo' : 'Desactivado' }}</small>
-              <em *ngIf="employee.inactiveReason">{{ employee.inactiveReason }}</em>
+              <h2>Colaboradores</h2>
+              <p>{{ employees().length }} registrados</p>
             </div>
-            <div class="sale-actions">
-              <button class="secondary icon-action" type="button" (click)="editEmployee(employee); $event.stopPropagation()" title="Editar">
-                <svg lucidePencil size="14"></svg>
-              </button>
-              <button class="danger icon-action" type="button" (click)="toggleEmployeeStatus(employee); $event.stopPropagation()" [title]="employee.active ? 'Desactivar' : 'Restaurar'">
-                <svg *ngIf="employee.active" lucidePower size="14"></svg>
-                <svg *ngIf="!employee.active" lucideRotateCcw size="14"></svg>
-              </button>
-            </div>
-          </article>
+            <button class="primary icon-action" type="button" (click)="openEmployeeDialog()" title="Agregar colaborador">
+              <svg lucidePlus size="14"></svg>
+            </button>
+          </header>
+          <div class="employee-list-scroll">
+            <article class="employee-card" *ngFor="let employee of employees()" [class.inactive]="!employee.active" [class.active]="selectedEmployeeId() === employee.id" (click)="selectEmployee(employee)">
+              <div>
+                <strong>{{ employee.name }}</strong>
+                <small>{{ employee.roleName }} · {{ employee.active ? 'Activo' : 'Desactivado' }}</small>
+                <em *ngIf="employee.inactiveReason">{{ employee.inactiveReason }}</em>
+              </div>
+              <div class="sale-actions">
+                <button class="secondary icon-action" type="button" (click)="openEmployeeDialog(employee); $event.stopPropagation()" title="Editar">
+                  <svg lucidePencil size="14"></svg>
+                </button>
+                <button class="danger icon-action" type="button" (click)="toggleEmployeeStatus(employee); $event.stopPropagation()" [title]="employee.active ? 'Desactivar' : 'Restaurar'">
+                  <svg *ngIf="employee.active" lucidePower size="14"></svg>
+                  <svg *ngIf="!employee.active" lucideRotateCcw size="14"></svg>
+                </button>
+              </div>
+            </article>
+          </div>
         </section>
 
         <section class="panel schedule-editor" *ngIf="selectedEmployee() as employee">

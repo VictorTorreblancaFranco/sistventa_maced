@@ -311,7 +311,8 @@ nav button.active {
 }
 
 .staff-layout {
-  grid-template-columns: minmax(0, 1fr) minmax(330px, 390px);
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+  overflow: hidden;
 }
 
 .section-head {
@@ -1390,16 +1391,24 @@ nav button.active {
 
 .staff-main {
   grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: hidden;
 }
 
 .staff-side {
   align-content: start;
+  grid-auto-rows: max-content;
   max-height: 100%;
   overflow: auto;
+  padding-right: 2px;
 }
 
 .staff-head {
   grid-column: auto;
+}
+
+.staff-head .dashboard-actions {
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .staff-metrics {
@@ -1414,17 +1423,24 @@ nav button.active {
 
 .staff-board-panel {
   align-content: start;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
   overflow: auto;
 }
 
 .staff-board-panel > .section-head {
-  min-width: 980px;
+  min-width: 1120px;
+  position: sticky;
+  left: 0;
+  z-index: 2;
 }
 
 .staff-table {
   display: grid;
   gap: 8px;
-  min-width: 980px;
+  min-width: 1120px;
+  overflow: visible;
 }
 
 .staff-table-head,
@@ -1432,14 +1448,17 @@ nav button.active {
   align-items: stretch;
   display: grid;
   gap: 8px;
-  grid-template-columns: 190px repeat(7, minmax(96px, 1fr));
+  grid-template-columns: 210px repeat(7, minmax(118px, 1fr));
 }
 
 .staff-table-head {
   color: var(--muted);
   font-size: 12px;
   font-weight: 900;
+  position: sticky;
+  top: 0;
   text-transform: uppercase;
+  z-index: 2;
 }
 
 .staff-table-head span {
@@ -1460,7 +1479,7 @@ nav button.active {
 .staff-row {
   background: transparent;
   color: var(--ink);
-  min-height: 76px;
+  min-height: 84px;
   padding: 0;
   text-align: left;
 }
@@ -1478,7 +1497,7 @@ nav button.active {
   display: grid;
   gap: 3px;
   min-width: 0;
-  padding: 9px;
+  padding: 10px;
 }
 
 .staff-person {
@@ -1548,6 +1567,18 @@ nav button.active {
 .exception-form,
 .exceptions-list {
   align-content: start;
+}
+
+.employee-list {
+  max-height: 260px;
+}
+
+.employee-list-scroll {
+  display: grid;
+  gap: 8px;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 2px;
 }
 
 .inline-field {
