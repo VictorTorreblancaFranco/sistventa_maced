@@ -1694,8 +1694,7 @@ nav button.active {
 
 .staff-day {
   align-content: center;
-  border-left-width: 0;
-  box-shadow: inset 4px 0 0 transparent;
+  border-left: 3px solid transparent;
 }
 
 .staff-day b {
@@ -1719,38 +1718,38 @@ nav button.active {
 
 .staff-day.working {
   background: #effaf4;
-  border-color: #b9decf;
-  box-shadow: inset 4px 0 0 #1f7a5f;
+  border-color: #d8e8df;
+  border-left-color: #1f7a5f;
 }
 
 .staff-day.rest {
   background: #fff0ed;
-  border-color: #ecc3bb;
-  box-shadow: inset 4px 0 0 #b34336;
+  border-color: #eed8d3;
+  border-left-color: #b34336;
 }
 
 .staff-day.permission {
   background: #fff8ea;
-  border-color: #eed29b;
-  box-shadow: inset 4px 0 0 #d99d45;
+  border-color: #ecdfbe;
+  border-left-color: #d99d45;
 }
 
 .staff-day.absent {
   background: #fff0ed;
-  border-color: #e6b6ad;
-  box-shadow: inset 4px 0 0 var(--danger);
+  border-color: #eed8d3;
+  border-left-color: var(--danger);
 }
 
 .staff-day.vacation {
   background: #eef5ff;
-  border-color: #bccbeb;
-  box-shadow: inset 4px 0 0 #425b9f;
+  border-color: #d3dced;
+  border-left-color: #425b9f;
 }
 
 .staff-day.changed {
   background: #f0faf4;
-  border-color: #b9decf;
-  box-shadow: inset 4px 0 0 #25a06f;
+  border-color: #d8e8df;
+  border-left-color: #25a06f;
 }
 
 .schedule-exporting {
