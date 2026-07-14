@@ -17,6 +17,14 @@
   --shadow: 0 10px 28px rgba(45, 34, 23, .055);
 }
 
+* {
+  scrollbar-width: none;
+}
+
+*::-webkit-scrollbar {
+  display: none;
+}
+
 button,
 input,
 select {
@@ -1094,11 +1102,10 @@ nav button.active {
 .dashboard {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 14px;
   height: calc(100vh - 28px);
   overflow: auto;
-  padding-bottom: 24px;
-  padding-right: 8px;
+  padding-bottom: 28px;
 }
 
 .dashboard-head {
@@ -1131,21 +1138,22 @@ nav button.active {
 
 .dashboard-summary {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
 .metric {
-  background: rgba(255, 255, 255, .9);
+  background: #fff;
   border: 1px solid #e8dfd1;
   border-radius: 10px;
   display: grid;
-  gap: 8px;
-  padding: 14px;
+  gap: 7px;
+  min-height: 96px;
+  padding: 13px;
 }
 
 .hero-metric {
-  background: #fffdf8;
+  background: #f2faf5;
   border-color: #d9c8ad;
 }
 
@@ -1156,7 +1164,7 @@ nav button.active {
 
 .metric strong {
   color: var(--brand);
-  font-size: 22px;
+  font-size: 24px;
   line-height: 1.08;
 }
 
@@ -1216,8 +1224,8 @@ nav button.active {
 .dashboard-visual-grid {
   align-items: stretch;
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(420px, .95fr) minmax(460px, 1.25fr);
+  gap: 14px;
+  grid-template-columns: minmax(430px, .95fr) minmax(500px, 1.25fr);
 }
 
 .dashboard-visual-grid.lower {
@@ -1228,22 +1236,22 @@ nav button.active {
 .payment-method-panel,
 .week-panel {
   align-content: start;
-  min-height: 230px;
+  min-height: 246px;
 }
 
 .donut-layout {
   align-items: center;
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(170px, 210px) minmax(0, 1fr);
-  min-height: 170px;
+  grid-template-columns: minmax(190px, 230px) minmax(0, 1fr);
+  min-height: 188px;
 }
 
 .donut-chart {
   aspect-ratio: 1;
   border-radius: 999px;
   display: grid;
-  padding: 22px;
+  padding: 24px;
   place-items: center;
 }
 
@@ -1268,21 +1276,23 @@ nav button.active {
 
 .donut-chart b {
   color: #173c34;
-  font-size: 22px;
+  font-size: 24px;
 }
 
 .donut-legend {
   display: grid;
-  gap: 9px;
+  gap: 8px;
 }
 
 .donut-legend div {
   align-items: center;
-  border-bottom: 1px solid #eee6da;
+  background: #fffdf8;
+  border: 1px solid #eee6da;
+  border-radius: 9px;
   display: grid;
   gap: 8px;
   grid-template-columns: 10px 1fr auto;
-  padding-bottom: 8px;
+  padding: 8px 10px;
 }
 
 .donut-legend i {
@@ -1302,9 +1312,13 @@ nav button.active {
 
 .payment-method-row {
   align-items: center;
+  background: #fffdf8;
+  border: 1px solid #eee6da;
+  border-radius: 9px;
   display: grid;
   gap: 10px;
   grid-template-columns: 116px minmax(110px, 1fr) 96px minmax(130px, auto);
+  padding: 9px 10px;
 }
 
 .payment-method-row div {
@@ -1348,18 +1362,24 @@ nav button.active {
 
 .mini-method-row {
   align-items: center;
-  border-bottom: 1px solid #eee6da;
+  background: #fffdf8;
+  border: 1px solid #eee6da;
+  border-radius: 9px;
   display: flex;
   font-size: 13px;
   justify-content: space-between;
-  padding-bottom: 6px;
+  padding: 8px 10px;
 }
 
 .bar-row {
   align-items: center;
+  background: #fffdf8;
+  border: 1px solid #eee6da;
+  border-radius: 9px;
   display: grid;
   gap: 10px;
   grid-template-columns: 88px minmax(120px, 1fr) 110px minmax(150px, auto);
+  padding: 9px 10px;
 }
 
 .bar-row div {

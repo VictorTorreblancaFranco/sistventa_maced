@@ -630,7 +630,7 @@
           </div>
         </header>
         <section class="dashboard-summary">
-          <article class="metric hero-metric"><span>Cobrado hoy</span><strong>{{ money(dashboardTodayPaid(data)) }}</strong><small>{{ data.todayOrders }} cuentas · ticket {{ money(dashboardAverageTicket(data)) }}</small></article>
+          <article class="metric hero-metric"><span>Cobrado del dia</span><strong>{{ money(dashboardTodayPaid(data)) }}</strong><small>{{ data.todayOrders }} cuentas · ticket {{ money(dashboardAverageTicket(data)) }}</small></article>
           <article class="metric"><span>Ventas registradas</span><strong>{{ money(data.todaySales) }}</strong><small>Fecha de venta seleccionada</small></article>
           <article class="metric"><span>Semana</span><strong>{{ money(data.weekSales) }}</strong><small>{{ dashboardWeekOrders(data) }} cuentas</small></article>
           <article class="metric"><span>Mes a la fecha</span><strong>{{ money(data.monthSales) }}</strong><small>Ventas registradas del mes</small></article>
@@ -657,7 +657,7 @@
             <header class="section-head tight">
               <div>
                 <h2>Composicion de caja</h2>
-                <p>Participacion por medio de pago del dia.</p>
+                <p>Segun ventas registradas del dia.</p>
               </div>
             </header>
             <div class="donut-layout">
@@ -680,8 +680,8 @@
           <div class="panel payment-method-panel">
             <header class="section-head tight">
               <div>
-                <h2>Medios de pago hoy</h2>
-                <p>Cantidad de ventas y total cobrado por metodo.</p>
+                <h2>Medios de pago del dia</h2>
+                <p>Ventas, pagos e importe por metodo.</p>
               </div>
             </header>
             <div class="payment-method-row" *ngFor="let method of data.todayPaymentsByMethod">
@@ -698,7 +698,7 @@
             <header class="section-head tight">
               <div>
                 <h2>Semana y mes</h2>
-                <p>Comparativo de cobros por medio de pago.</p>
+                <p>Importe cobrado por ventas registradas.</p>
               </div>
             </header>
             <div class="payment-compare-grid">
@@ -723,7 +723,7 @@
             <header class="section-head tight">
               <div>
                 <h2>Ritmo semanal</h2>
-                <p>Total vendido y cobrado por dia.</p>
+                <p>Total vendido y pagado por fecha registrada.</p>
               </div>
               <strong>{{ dashboardBestDay(data) }}</strong>
             </header>

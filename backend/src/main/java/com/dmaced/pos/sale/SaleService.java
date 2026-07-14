@@ -138,22 +138,13 @@ public class SaleService {
     List<Sale> daySales = monthSales.stream()
         .filter(sale -> sale.getCreatedAt().toLocalDate().equals(reportDate))
         .toList();
-    List<Sale> weekPayments = saleRepository.findDistinctByPaymentsPaidAtBetweenOrderByCreatedAtDesc(
-        weekStart.atStartOfDay(), reportDate.atTime(LocalTime.MAX));
-    List<Sale> dayPayments = weekPayments.stream()
-        .filter(sale -> sale.getPayments().stream()
-            .anyMatch(payment -> payment.getPaidAt() != null && payment.getPaidAt().toLocalDate().equals(reportDate)))
-        .toList();
-    List<Sale> monthPayments = saleRepository.findDistinctByPaymentsPaidAtBetweenOrderByCreatedAtDesc(
-        monthStart.atStartOfDay(), reportDate.atTime(LocalTime.MAX));
-
     List<DailySummary> weekByDay = new ArrayList<>();
     for (int i = 0; i < 7; i++) {
       LocalDate date = weekStart.plusDays(i);
       List<Sale> salesForWeekDay = weekSales.stream()
           .filter(sale -> sale.getCreatedAt().toLocalDate().equals(date))
           .toList();
-      weekByDay.add(new DailySummary(date, sumTotal(salesForWeekDay), sumPaymentsOnDate(weekPayments, date), salesForWeekDay.size()));
+      weekByDay.add(new DailySummary(date, sumTotal(salesForWeekDay), sumPaid(salesForWeekDay), salesForWeekDay.size()));
     }
 
     return new DashboardResponse(
@@ -164,9 +155,9 @@ public class SaleService {
         monthSales.stream().map(Sale::getRemaining).reduce(ZERO, BigDecimal::add),
         daySales.size(),
         weekByDay,
-        summarizePaymentsByMethod(dayPayments, reportDate.atStartOfDay(), reportDate.atTime(LocalTime.MAX)),
-        summarizePaymentsByMethod(weekPayments, weekStart.atStartOfDay(), reportDate.atTime(LocalTime.MAX)),
-        summarizePaymentsByMethod(monthPayments, monthStart.atStartOfDay(), reportDate.atTime(LocalTime.MAX)),
+        summarizePaymentsByMethod(daySales),
+        summarizePaymentsByMethod(weekSales),
+        summarizePaymentsByMethod(monthSales),
         cashClosureRepository.findByBusinessDate(reportDate).map(this::toCashClosureResponse).orElse(null));
   }
 
@@ -377,6 +368,16 @@ public class SaleService {
   }
 
   private List<PaymentMethodSummary> summarizePaymentsByMethod(List<Sale> sales, LocalDateTime from, LocalDateTime to) {
+    return summarizePaymentsByMethod(sales, payment -> payment.getPaidAt() != null
+        && !payment.getPaidAt().isBefore(from)
+        && !payment.getPaidAt().isAfter(to));
+  }
+
+  private List<PaymentMethodSummary> summarizePaymentsByMethod(List<Sale> sales) {
+    return summarizePaymentsByMethod(sales, payment -> payment.getPaidAt() != null);
+  }
+
+  private List<PaymentMethodSummary> summarizePaymentsByMethod(List<Sale> sales, java.util.function.Predicate<SalePayment> paymentFilter) {
     Map<PaymentMethod, BigDecimal> totals = new EnumMap<>(PaymentMethod.class);
     Map<PaymentMethod, Long> payments = new EnumMap<>(PaymentMethod.class);
     Map<PaymentMethod, Set<Long>> saleIds = new EnumMap<>(PaymentMethod.class);
@@ -388,8 +389,7 @@ public class SaleService {
     }
 
     sales.forEach(sale -> sale.getPayments().stream()
-        .filter(payment -> payment.getPaidAt() != null)
-        .filter(payment -> !payment.getPaidAt().isBefore(from) && !payment.getPaidAt().isAfter(to))
+        .filter(paymentFilter)
         .forEach(payment -> {
           PaymentMethod method = payment.getMethod();
           totals.put(method, totals.get(method).add(payment.getAmount()));
