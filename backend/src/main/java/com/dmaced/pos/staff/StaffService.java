@@ -113,20 +113,25 @@ public class StaffService {
     return toEmployee(employee);
   }
 
-  @Transactional(readOnly = true)
-  public List<ScheduleResponse> schedule(Long employeeId) {
-    return scheduleRepository.findByEmployeeId(employeeId).stream()
+  @Transactional
+  public List<ScheduleResponse> schedule(Long employeeId, LocalDate date) {
+    Employee employee = employeeRepository.findById(employeeId).orElseThrow();
+    LocalDate weekStart = weekStart(date);
+    List<EmployeeSchedule> schedules = ensureWeekSchedule(employee, weekStart);
+    return schedules.stream()
         .sorted(Comparator.comparing(EmployeeSchedule::getDayOfWeek))
         .map(this::toSchedule)
         .toList();
   }
 
   @Transactional
-  public ScheduleResponse updateSchedule(Long employeeId, ScheduleRequest request) {
+  public ScheduleResponse updateSchedule(Long employeeId, LocalDate date, ScheduleRequest request) {
     Employee employee = employeeRepository.findById(employeeId).orElseThrow();
-    EmployeeSchedule schedule = scheduleRepository.findByEmployeeIdAndDayOfWeek(employeeId, request.dayOfWeek()).orElseGet(() -> {
+    LocalDate weekStart = weekStart(date);
+    EmployeeSchedule schedule = scheduleRepository.findByEmployeeIdAndWeekStartAndDayOfWeek(employeeId, weekStart, request.dayOfWeek()).orElseGet(() -> {
       EmployeeSchedule created = new EmployeeSchedule();
       created.setEmployee(employee);
+      created.setWeekStart(weekStart);
       created.setDayOfWeek(request.dayOfWeek());
       return created;
     });
@@ -165,9 +170,9 @@ public class StaffService {
     exceptionRepository.deleteById(id);
   }
 
-  @Transactional(readOnly = true)
+  @Transactional
   public StaffWeekResponse week(LocalDate date) {
-    LocalDate weekStart = (date == null ? LocalDate.now() : date).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
+    LocalDate weekStart = weekStart(date);
     LocalDate weekEnd = weekStart.plusDays(6);
     List<EmployeeException> exceptions = exceptionRepository.findByStartDateLessThanEqualAndEndDateGreaterThanEqual(weekEnd, weekStart);
     List<StaffWeekRow> rows = employeeRepository.findAllByOrderByActiveDescNameAsc().stream()
@@ -178,7 +183,7 @@ public class StaffService {
   }
 
   private List<StaffDayResponse> buildWeekDays(Employee employee, LocalDate weekStart, List<EmployeeException> exceptions) {
-    List<EmployeeSchedule> schedules = scheduleRepository.findByEmployeeId(employee.getId());
+    List<EmployeeSchedule> schedules = ensureWeekSchedule(employee, weekStart);
     return Arrays.stream(DayOfWeek.values()).map(day -> {
       LocalDate date = weekStart.plusDays(day.getValue() - 1L);
       EmployeeException exception = exceptions.stream()
@@ -209,15 +214,35 @@ public class StaffService {
   }
 
   private void createDefaultSchedule(Employee employee) {
-    for (DayOfWeek day : DayOfWeek.values()) {
-      EmployeeSchedule schedule = new EmployeeSchedule();
-      schedule.setEmployee(employee);
-      schedule.setDayOfWeek(day);
-      schedule.setWorking(day != DayOfWeek.MONDAY);
-      schedule.setStartTime(day == DayOfWeek.MONDAY ? null : LocalTime.of(18, 0));
-      schedule.setDoubleShift(false);
-      scheduleRepository.save(schedule);
+    ensureWeekSchedule(employee, weekStart(LocalDate.now()));
+  }
+
+  private List<EmployeeSchedule> ensureWeekSchedule(Employee employee, LocalDate weekStart) {
+    List<EmployeeSchedule> schedules = scheduleRepository.findByEmployeeIdAndWeekStart(employee.getId(), weekStart);
+    if (schedules.size() >= DayOfWeek.values().length) {
+      return schedules;
     }
+    for (DayOfWeek day : DayOfWeek.values()) {
+      if (schedules.stream().anyMatch(schedule -> schedule.getDayOfWeek() == day)) {
+        continue;
+      }
+      EmployeeSchedule legacy = scheduleRepository.findFirstByEmployeeIdAndDayOfWeekAndWeekStartIsNull(employee.getId(), day).orElse(null);
+      EmployeeSchedule schedule = legacy == null ? new EmployeeSchedule() : legacy;
+      schedule.setEmployee(employee);
+      schedule.setWeekStart(weekStart);
+      schedule.setDayOfWeek(day);
+      if (legacy == null) {
+        schedule.setWorking(day != DayOfWeek.MONDAY);
+        schedule.setStartTime(day == DayOfWeek.MONDAY ? null : LocalTime.of(18, 0));
+        schedule.setDoubleShift(false);
+      }
+      schedules.add(scheduleRepository.save(schedule));
+    }
+    return schedules;
+  }
+
+  private LocalDate weekStart(LocalDate date) {
+    return (date == null ? LocalDate.now() : date).with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY));
   }
 
   private void applyException(EmployeeException exception, Employee employee, ExceptionRequest request) {
@@ -259,7 +284,7 @@ public class StaffService {
   }
 
   private ScheduleResponse toSchedule(EmployeeSchedule schedule) {
-    return new ScheduleResponse(schedule.getId(), schedule.getDayOfWeek(), schedule.isWorking(), schedule.getStartTime(), schedule.isDoubleShift());
+    return new ScheduleResponse(schedule.getId(), schedule.getWeekStart(), schedule.getDayOfWeek(), schedule.isWorking(), schedule.getStartTime(), schedule.isDoubleShift());
   }
 
   private ExceptionResponse toException(EmployeeException exception) {

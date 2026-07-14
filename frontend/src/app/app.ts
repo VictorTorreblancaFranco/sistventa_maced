@@ -152,6 +152,7 @@ type StaffExceptionType = 'PERMISO' | 'FALTA' | 'DESCANSO' | 'VACACIONES' | 'CAM
 
 interface StaffSchedule {
   id: number;
+  weekStart?: string;
   dayOfWeek: string;
   working: boolean;
   startTime?: string;
@@ -1473,7 +1474,14 @@ export class App implements OnInit {
 
   loadStaffWeek(showError = true): void {
     this.staffRequest(() => this.http.get<StaffWeek>(`${this.api}/staff/week?date=${this.staffWeekDate}`, this.options())).subscribe({
-      next: week => this.staffWeek.set(week),
+      next: week => {
+        this.staffWeek.set(week);
+        this.staffWeekDate = week.weekStart;
+        const employeeId = this.selectedEmployeeId();
+        if (employeeId) {
+          this.loadEmployeeDetails(employeeId);
+        }
+      },
       error: error => {
         this.staffWeek.set(null);
         if (showError) {
@@ -1748,7 +1756,7 @@ export class App implements OnInit {
 
   loadEmployeeDetails(employeeId: number): void {
     forkJoin({
-      schedule: this.http.get<StaffSchedule[]>(`${this.api}/staff/employees/${employeeId}/schedule`, this.options()),
+      schedule: this.http.get<StaffSchedule[]>(`${this.api}/staff/employees/${employeeId}/schedule?date=${this.staffWeekDate}`, this.options()),
       exceptions: this.http.get<StaffException[]>(`${this.api}/staff/employees/${employeeId}/exceptions`, this.options())
     }).subscribe({
       next: ({ schedule, exceptions }) => {
@@ -1770,7 +1778,7 @@ export class App implements OnInit {
       startTime: day.working ? day.startTime || '18:00' : null,
       doubleShift: day.working ? !!day.doubleShift : false
     };
-    this.http.put<StaffSchedule>(`${this.api}/staff/employees/${employeeId}/schedule`, payload, this.options()).subscribe({
+    this.http.put<StaffSchedule>(`${this.api}/staff/employees/${employeeId}/schedule?date=${this.staffWeekDate}`, payload, this.options()).subscribe({
       next: updated => {
         this.employeeSchedule.set(this.sortSchedule(this.employeeSchedule().map(item => item.dayOfWeek === updated.dayOfWeek ? updated : item)));
         this.loadStaffWeek();

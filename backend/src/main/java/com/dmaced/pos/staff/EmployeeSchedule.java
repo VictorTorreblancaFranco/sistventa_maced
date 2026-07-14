@@ -8,6 +8,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 import java.time.DayOfWeek;
+import java.time.LocalDate;
 import java.time.LocalTime;
 
 @Entity
@@ -20,6 +21,7 @@ public class EmployeeSchedule {
   @ManyToOne(fetch = FetchType.LAZY)
   private Employee employee;
 
+  private LocalDate weekStart;
   private DayOfWeek dayOfWeek;
   private boolean working = true;
   private LocalTime startTime;
@@ -29,6 +31,8 @@ public class EmployeeSchedule {
   public void setId(Long id) { this.id = id; }
   public Employee getEmployee() { return employee; }
   public void setEmployee(Employee employee) { this.employee = employee; }
+  public LocalDate getWeekStart() { return weekStart; }
+  public void setWeekStart(LocalDate weekStart) { this.weekStart = weekStart; }
   public DayOfWeek getDayOfWeek() { return dayOfWeek; }
   public void setDayOfWeek(DayOfWeek dayOfWeek) { this.dayOfWeek = dayOfWeek; }
   public boolean isWorking() { return working; }

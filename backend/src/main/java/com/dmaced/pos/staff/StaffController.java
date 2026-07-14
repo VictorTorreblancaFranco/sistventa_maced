@@ -64,13 +64,13 @@ public class StaffController {
   }
 
   @GetMapping("/employees/{id}/schedule")
-  List<ScheduleResponse> schedule(@PathVariable Long id) {
-    return staffService.schedule(id);
+  List<ScheduleResponse> schedule(@PathVariable Long id, @RequestParam(required = false) LocalDate date) {
+    return staffService.schedule(id, date);
   }
 
   @PutMapping("/employees/{id}/schedule")
-  ScheduleResponse updateSchedule(@PathVariable Long id, @Valid @RequestBody ScheduleRequest request) {
-    return staffService.updateSchedule(id, request);
+  ScheduleResponse updateSchedule(@PathVariable Long id, @RequestParam(required = false) LocalDate date, @Valid @RequestBody ScheduleRequest request) {
+    return staffService.updateSchedule(id, date, request);
   }
 
   @GetMapping("/employees/{id}/exceptions")
