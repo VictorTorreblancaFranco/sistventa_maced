@@ -1197,6 +1197,45 @@ export class App implements OnInit {
     return `${best.label} · ${this.money(best.total)}`;
   }
 
+  paymentMethodTotal(rows: PaymentMethodSummary[]): number {
+    return rows.reduce((total, row) => total + Number(row.total), 0);
+  }
+
+  paymentMethodPercent(row: PaymentMethodSummary, rows: PaymentMethodSummary[]): number {
+    const total = this.paymentMethodTotal(rows);
+    return total ? (Number(row.total) / total) * 100 : 0;
+  }
+
+  paymentDonutStyle(rows: PaymentMethodSummary[]): string {
+    const colors: Record<PaymentMethod, string> = {
+      EFECTIVO: '#25745f',
+      QR: '#d99d45',
+      YAPE: '#425b9f',
+      VISA: '#a94336'
+    };
+    const total = this.paymentMethodTotal(rows);
+    if (!total) {
+      return 'conic-gradient(#e8dfd1 0 100%)';
+    }
+    let cursor = 0;
+    const segments = rows.map(row => {
+      const start = cursor;
+      cursor += this.paymentMethodPercent(row, rows);
+      return `${colors[row.method]} ${start}% ${cursor}%`;
+    });
+    return `conic-gradient(${segments.join(', ')})`;
+  }
+
+  paymentMethodColor(method: PaymentMethod): string {
+    const colors: Record<PaymentMethod, string> = {
+      EFECTIVO: '#25745f',
+      QR: '#d99d45',
+      YAPE: '#425b9f',
+      VISA: '#a94336'
+    };
+    return colors[method];
+  }
+
   paymentMethodMax(rows: PaymentMethodSummary[]): number {
     return Math.max(1, ...rows.map(row => Number(row.total)));
   }

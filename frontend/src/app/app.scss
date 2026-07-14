@@ -719,18 +719,6 @@ nav button.active {
   justify-content: center;
 }
 
-.ticket-payment-row {
-  align-items: center;
-  display: grid;
-  gap: 6px;
-  grid-template-columns: 1fr auto auto;
-}
-
-.ticket-payment-row .icon-action {
-  min-height: 28px;
-  width: 28px;
-}
-
 .change-hint,
 .paid-note {
   color: var(--brand);
@@ -1105,10 +1093,12 @@ nav button.active {
 
 .dashboard {
   display: grid;
-  gap: 12px;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  align-content: start;
+  gap: 14px;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
   height: calc(100vh - 28px);
   overflow: auto;
+  padding-right: 4px;
 }
 
 .dashboard-head {
@@ -1132,6 +1122,13 @@ nav button.active {
   gap: 8px;
 }
 
+.dashboard-summary {
+  display: grid;
+  gap: 12px;
+  grid-column: 1 / -1;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
 .metric {
   background: rgba(255, 255, 255, .9);
   border: 1px solid #e8dfd1;
@@ -1139,6 +1136,12 @@ nav button.active {
   display: grid;
   gap: 8px;
   padding: 14px;
+}
+
+.hero-metric {
+  background: #fffdf8;
+  border-color: #d9c8ad;
+  grid-column: span 2;
 }
 
 .metric span,
@@ -1156,8 +1159,77 @@ nav button.active {
   color: #a7352a;
 }
 
-.metric.muted-metric strong {
-  color: #38413d;
+.payment-donut-panel {
+  grid-column: span 5;
+  min-height: 290px;
+}
+
+.donut-layout {
+  align-items: center;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 210px 1fr;
+}
+
+.donut-chart {
+  aspect-ratio: 1;
+  border-radius: 999px;
+  display: grid;
+  padding: 22px;
+  place-items: center;
+}
+
+.donut-chart > div {
+  align-items: center;
+  background: #fffdf8;
+  border-radius: 999px;
+  box-shadow: inset 0 0 0 1px #e8dfd1;
+  display: grid;
+  height: 100%;
+  justify-items: center;
+  padding: 18px;
+  text-align: center;
+  width: 100%;
+}
+
+.donut-chart span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.donut-chart b {
+  color: #173c34;
+  font-size: 22px;
+}
+
+.donut-legend {
+  display: grid;
+  gap: 9px;
+}
+
+.donut-legend div {
+  align-items: center;
+  border-bottom: 1px solid #eee6da;
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 10px 1fr auto;
+  padding-bottom: 8px;
+}
+
+.donut-legend i {
+  aspect-ratio: 1;
+  border-radius: 999px;
+  display: block;
+}
+
+.donut-legend span {
+  color: #3f4742;
+  font-weight: 800;
+}
+
+.donut-legend b {
+  color: var(--brand);
 }
 
 .week-panel {
@@ -1166,8 +1238,12 @@ nav button.active {
 }
 
 .payment-method-panel {
-  grid-column: span 2;
+  grid-column: span 7;
   overflow: auto;
+}
+
+.payment-method-panel + .payment-method-panel {
+  grid-column: span 5;
 }
 
 .payment-method-row {
@@ -1279,8 +1355,19 @@ nav button.active {
     grid-template-columns: 1fr;
   }
 
-  .payment-method-panel {
+  .dashboard-summary,
+  .payment-donut-panel,
+  .payment-method-panel,
+  .payment-method-panel + .payment-method-panel {
     grid-column: 1;
+  }
+
+  .dashboard-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .hero-metric {
+    grid-column: span 2;
   }
 
   .content {
@@ -1339,8 +1426,14 @@ nav button.active {
   .cart-item,
   .bar-row,
   .payment-method-row,
-  .payment-compare-grid {
+  .payment-compare-grid,
+  .dashboard-summary,
+  .donut-layout {
     grid-template-columns: 1fr;
+  }
+
+  .hero-metric {
+    grid-column: 1;
   }
 
   .bar-row small,

@@ -448,14 +448,39 @@
             </button>
           </div>
         </header>
-        <article class="metric"><span>Ventas registradas</span><strong>{{ money(data.todaySales) }}</strong><small>{{ data.todayOrders }} cuentas del dia</small></article>
-        <article class="metric"><span>Cobrado en caja</span><strong>{{ money(dashboardTodayPaid(data)) }}</strong><small>Pagos hechos ese dia</small></article>
-        <article class="metric"><span>Ticket promedio</span><strong>{{ money(dashboardAverageTicket(data)) }}</strong><small>Promedio del dia</small></article>
-        <article class="metric"><span>Ventas semana</span><strong>{{ money(data.weekSales) }}</strong><small>{{ dashboardWeekOrders(data) }} cuentas</small></article>
-        <article class="metric"><span>Mes a la fecha</span><strong>{{ money(data.monthSales) }}</strong><small>Ventas registradas del mes</small></article>
-        <article class="metric warn"><span>Pendiente</span><strong>{{ money(data.pendingAmount) }}</strong><small>Cuentas por cobrar</small></article>
-        <article class="metric"><span>Mejor fecha semana</span><strong>{{ dashboardBestDay(data) }}</strong><small>Por fecha de venta registrada</small></article>
-        <article class="metric"><span>Mejor medio hoy</span><strong>{{ dashboardBestPaymentMethod(data) }}</strong><small>Por cobros registrados</small></article>
+        <section class="dashboard-summary">
+          <article class="metric hero-metric"><span>Cobrado hoy</span><strong>{{ money(dashboardTodayPaid(data)) }}</strong><small>{{ data.todayOrders }} cuentas · ticket {{ money(dashboardAverageTicket(data)) }}</small></article>
+          <article class="metric"><span>Ventas registradas</span><strong>{{ money(data.todaySales) }}</strong><small>Fecha de venta seleccionada</small></article>
+          <article class="metric"><span>Semana</span><strong>{{ money(data.weekSales) }}</strong><small>{{ dashboardWeekOrders(data) }} cuentas</small></article>
+          <article class="metric"><span>Mes a la fecha</span><strong>{{ money(data.monthSales) }}</strong><small>Ventas registradas del mes</small></article>
+          <article class="metric warn"><span>Pendiente</span><strong>{{ money(data.pendingAmount) }}</strong><small>Cuentas por cobrar</small></article>
+          <article class="metric"><span>Mejor medio hoy</span><strong>{{ dashboardBestPaymentMethod(data) }}</strong><small>Por cobros registrados</small></article>
+        </section>
+
+        <section class="panel payment-donut-panel">
+          <header class="section-head tight">
+            <div>
+              <h2>Composicion de caja</h2>
+              <p>Participacion por medio de pago del dia.</p>
+            </div>
+          </header>
+          <div class="donut-layout">
+            <div class="donut-chart" [style.background]="paymentDonutStyle(data.todayPaymentsByMethod)">
+              <div>
+                <span>Total cobrado</span>
+                <b>{{ money(paymentMethodTotal(data.todayPaymentsByMethod)) }}</b>
+              </div>
+            </div>
+            <div class="donut-legend">
+              <div *ngFor="let method of data.todayPaymentsByMethod">
+                <i [style.background]="paymentMethodColor(method.method)"></i>
+                <span>{{ method.label }}</span>
+                <b>{{ paymentMethodPercent(method, data.todayPaymentsByMethod) | number:'1.0-0' }}%</b>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <div class="panel payment-method-panel">
           <header class="section-head tight">
             <div>
@@ -497,9 +522,10 @@
         <div class="panel week-panel">
           <header class="section-head tight">
             <div>
-              <h2>Semana</h2>
-              <p>Total por fecha de venta; cobrado por fecha real de pago.</p>
+              <h2>Ritmo semanal</h2>
+              <p>Total vendido y cobrado por dia.</p>
             </div>
+            <strong>{{ dashboardBestDay(data) }}</strong>
           </header>
           <div class="bar-row" *ngFor="let day of data.weekByDay">
             <span>{{ shortDate(day.date) }}</span>
