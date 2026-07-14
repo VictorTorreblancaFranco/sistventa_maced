@@ -1118,7 +1118,7 @@ nav button.active {
 }
 
 .dashboard .panel {
-  overflow: hidden;
+  overflow: visible;
   width: 100%;
 }
 
@@ -1170,7 +1170,7 @@ nav button.active {
   border-color: #d8c2a0;
   display: flex;
   justify-content: space-between;
-  min-height: 120px;
+  min-height: 112px;
 }
 
 .cash-close-panel.closed {
@@ -1213,15 +1213,30 @@ nav button.active {
   color: var(--muted);
 }
 
-.payment-donut-panel {
-  min-height: 0;
+.dashboard-visual-grid {
+  align-items: stretch;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(420px, .95fr) minmax(460px, 1.25fr);
+}
+
+.dashboard-visual-grid.lower {
+  grid-template-columns: minmax(420px, .9fr) minmax(520px, 1.35fr);
+}
+
+.payment-donut-panel,
+.payment-method-panel,
+.week-panel {
+  align-content: start;
+  min-height: 230px;
 }
 
 .donut-layout {
   align-items: center;
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
+  grid-template-columns: minmax(170px, 210px) minmax(0, 1fr);
+  min-height: 170px;
 }
 
 .donut-chart {
@@ -1283,14 +1298,6 @@ nav button.active {
 
 .donut-legend b {
   color: var(--brand);
-}
-
-.week-panel {
-  overflow: hidden;
-}
-
-.payment-method-panel {
-  overflow: hidden;
 }
 
 .payment-method-row {
@@ -1764,6 +1771,7 @@ nav button.active {
   .staff-screen,
   .staff-layout,
   .staff-people-view,
+  .dashboard-visual-grid,
   .dashboard {
     height: auto;
     grid-template-columns: 1fr;
@@ -1845,6 +1853,7 @@ nav button.active {
   .payment-method-row,
   .payment-compare-grid,
   .dashboard-summary,
+  .dashboard-visual-grid,
   .donut-layout,
   .date-pair,
   .schedule-day-editor {
