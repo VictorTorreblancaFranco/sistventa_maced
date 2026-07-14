@@ -1092,10 +1092,9 @@ nav button.active {
 }
 
 .dashboard {
-  display: grid;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
-  grid-template-columns: repeat(12, minmax(0, 1fr));
   height: calc(100vh - 28px);
   overflow: auto;
   padding-bottom: 24px;
@@ -1108,7 +1107,7 @@ nav button.active {
   border-radius: 10px;
   color: #fff;
   display: flex;
-  grid-column: 1 / -1;
+  flex: 0 0 auto;
   justify-content: space-between;
   padding: 14px;
 }
@@ -1119,7 +1118,8 @@ nav button.active {
 }
 
 .dashboard .panel {
-  overflow: visible;
+  overflow: hidden;
+  width: 100%;
 }
 
 .dashboard-actions {
@@ -1132,7 +1132,6 @@ nav button.active {
 .dashboard-summary {
   display: grid;
   gap: 12px;
-  grid-column: 1 / -1;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
 }
 
@@ -1170,7 +1169,6 @@ nav button.active {
   background: #fffdf8;
   border-color: #d8c2a0;
   display: flex;
-  grid-column: span 7;
   justify-content: space-between;
   min-height: 120px;
 }
@@ -1216,7 +1214,6 @@ nav button.active {
 }
 
 .payment-donut-panel {
-  grid-column: span 5;
   min-height: 0;
 }
 
@@ -1224,7 +1221,7 @@ nav button.active {
   align-items: center;
   display: grid;
   gap: 16px;
-  grid-template-columns: 210px 1fr;
+  grid-template-columns: minmax(180px, 220px) minmax(0, 1fr);
 }
 
 .donut-chart {
@@ -1289,17 +1286,11 @@ nav button.active {
 }
 
 .week-panel {
-  grid-column: 1 / -1;
-  overflow: visible;
+  overflow: hidden;
 }
 
 .payment-method-panel {
-  grid-column: span 7;
-  overflow: visible;
-}
-
-.payment-method-panel + .payment-method-panel {
-  grid-column: span 5;
+  overflow: hidden;
 }
 
 .payment-method-row {
