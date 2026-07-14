@@ -3,6 +3,7 @@ package com.dmaced.pos.config;
 import com.dmaced.pos.product.Product;
 import com.dmaced.pos.product.ProductCategory;
 import com.dmaced.pos.product.ProductRepository;
+import com.dmaced.pos.staff.StaffService;
 import java.math.BigDecimal;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
@@ -10,9 +11,11 @@ import org.springframework.stereotype.Component;
 @Component
 public class DataInitializer implements CommandLineRunner {
   private final ProductRepository productRepository;
+  private final StaffService staffService;
 
-  public DataInitializer(ProductRepository productRepository) {
+  public DataInitializer(ProductRepository productRepository, StaffService staffService) {
     this.productRepository = productRepository;
+    this.staffService = staffService;
   }
 
   @Override
@@ -22,6 +25,7 @@ public class DataInitializer implements CommandLineRunner {
     createSpecialProduct("Adicional");
     createSpecialProduct("Copa rota");
     seedMenuProducts();
+    staffService.seedDefaults();
   }
 
   private void createFixedProduct(ProductCategory category, String name, String price) {

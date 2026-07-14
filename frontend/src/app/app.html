@@ -58,6 +58,10 @@
           <svg lucidePackage size="18"></svg>
           Productos
         </button>
+        <button [class.active]="tab() === 'staff'" (click)="tab.set('staff')">
+          <svg lucideUsers size="18"></svg>
+          Personal
+        </button>
         <button [class.active]="tab() === 'history'" (click)="tab.set('history')">
           <svg lucideHistory size="18"></svg>
           Historial
@@ -427,6 +431,193 @@
         </ng-container>
         <p *ngIf="!selectedSale()" class="empty-state">Selecciona una venta para ver el comprobante.</p>
       </div>
+    </section>
+
+    <section *ngIf="tab() === 'staff'" class="staff-layout">
+      <div class="staff-main">
+        <header class="dashboard-head staff-head">
+          <div>
+            <h2>Personal</h2>
+            <p>Horarios semanales, descansos, permisos y vacaciones.</p>
+          </div>
+          <div class="dashboard-actions">
+            <input class="date-input" [(ngModel)]="staffWeekDate" type="date" (change)="loadStaffWeek()" title="Semana del horario">
+            <button class="secondary compact" (click)="downloadStaffScheduleImage()" [disabled]="!staffWeek()" title="Descargar horario">
+              <svg lucideDownload size="16"></svg>
+              Imagen
+            </button>
+          </div>
+        </header>
+
+        <section class="staff-metrics">
+          <article class="metric hero-metric">
+            <span>Colaboradores activos</span>
+            <strong>{{ activeEmployeesCount() }}</strong>
+            <small>{{ employees().length - activeEmployeesCount() }} desactivados</small>
+          </article>
+          <article class="metric">
+            <span>Roles</span>
+            <strong>{{ staffRoles().length }}</strong>
+            <small>Roles administrables</small>
+          </article>
+          <article class="metric">
+            <span>Excepciones</span>
+            <strong>{{ employeeExceptions().length }}</strong>
+            <small>{{ selectedEmployee()?.name || 'Selecciona colaborador' }}</small>
+          </article>
+        </section>
+
+        <section class="panel staff-board-panel" id="staff-schedule-board">
+          <header class="section-head tight">
+            <div>
+              <h2>Horario semanal</h2>
+              <p *ngIf="staffWeek() as week">{{ formatReportDate(week.weekStart) }} al {{ formatReportDate(week.weekEnd) }}</p>
+            </div>
+            <strong>{{ activeEmployeesCount() }} activos</strong>
+          </header>
+
+          <div class="staff-table" *ngIf="staffWeek() as week">
+            <div class="staff-table-head">
+              <span>Colaborador</span>
+              <span *ngFor="let day of week.rows[0]?.days || []">
+                {{ dayName(day.dayOfWeek) }}
+                <small>{{ day.date | date:'dd/MM' }}</small>
+              </span>
+            </div>
+            <button class="staff-row" *ngFor="let row of week.rows" (click)="selectEmployee(row.employee)" [class.active]="selectedEmployeeId() === row.employee.id">
+              <span class="staff-person">
+                <b>{{ row.employee.name }}</b>
+                <small>{{ row.employee.roleName }}</small>
+              </span>
+              <span class="staff-day" *ngFor="let day of row.days" [class]="staffDayClass(day)">
+                <b>{{ day.status }}</b>
+                <small>{{ day.working && day.startTime ? day.startTime : 'No disponible' }}</small>
+                <em *ngIf="day.note">{{ day.note }}</em>
+              </span>
+            </button>
+            <p *ngIf="!week.rows.length" class="empty-state">Agrega colaboradores para construir el horario.</p>
+          </div>
+        </section>
+      </div>
+
+      <aside class="staff-side">
+        <form class="panel staff-form" (ngSubmit)="saveEmployee()">
+          <header class="section-head tight">
+            <div>
+              <h2>{{ employeeForm.id ? 'Editar colaborador' : 'Nuevo colaborador' }}</h2>
+              <p>Solo datos internos, sin acceso al sistema.</p>
+            </div>
+          </header>
+          <label>Nombre<input [(ngModel)]="employeeForm.name" name="employeeName" required></label>
+          <label>Rol
+            <select [(ngModel)]="employeeForm.roleId" name="employeeRole" required>
+              <option *ngFor="let role of staffRoles()" [ngValue]="role.id">{{ role.name }}</option>
+            </select>
+          </label>
+          <label class="check"><input [(ngModel)]="employeeForm.active" name="employeeActive" type="checkbox">Activo</label>
+          <label *ngIf="!employeeForm.active">Motivo<input [(ngModel)]="employeeForm.inactiveReason" name="inactiveReason" placeholder="Motivo"></label>
+          <div class="form-actions">
+            <button class="primary" type="submit" [disabled]="savingStaff()"><svg lucideSave size="16"></svg>Guardar</button>
+            <button class="secondary" type="button" (click)="resetEmployeeForm()">Limpiar</button>
+          </div>
+        </form>
+
+        <form class="panel role-form" (ngSubmit)="saveRole()">
+          <label>Crear rol
+            <div class="inline-field">
+              <input [(ngModel)]="roleName" name="roleName" placeholder="Anfitrión, cajero...">
+              <button class="secondary icon-only" type="submit" [disabled]="savingStaff()" title="Agregar rol">
+                <svg lucidePlus size="16"></svg>
+              </button>
+            </div>
+          </label>
+        </form>
+
+        <section class="panel employee-list">
+          <header class="section-head tight">
+            <h2>Colaboradores</h2>
+          </header>
+          <article class="employee-card" *ngFor="let employee of employees()" [class.inactive]="!employee.active" [class.active]="selectedEmployeeId() === employee.id" (click)="selectEmployee(employee)">
+            <div>
+              <strong>{{ employee.name }}</strong>
+              <small>{{ employee.roleName }} · {{ employee.active ? 'Activo' : 'Desactivado' }}</small>
+              <em *ngIf="employee.inactiveReason">{{ employee.inactiveReason }}</em>
+            </div>
+            <div class="sale-actions">
+              <button class="secondary icon-action" type="button" (click)="editEmployee(employee); $event.stopPropagation()" title="Editar">
+                <svg lucidePencil size="14"></svg>
+              </button>
+              <button class="danger icon-action" type="button" (click)="toggleEmployeeStatus(employee); $event.stopPropagation()" [title]="employee.active ? 'Desactivar' : 'Restaurar'">
+                <svg *ngIf="employee.active" lucidePower size="14"></svg>
+                <svg *ngIf="!employee.active" lucideRotateCcw size="14"></svg>
+              </button>
+            </div>
+          </article>
+        </section>
+
+        <section class="panel schedule-editor" *ngIf="selectedEmployee() as employee">
+          <header class="section-head tight">
+            <div>
+              <h2>Horario base</h2>
+              <p>{{ employee.name }}</p>
+            </div>
+          </header>
+          <div class="schedule-day-editor" *ngFor="let day of employeeSchedule()">
+            <label class="check">
+              <input [(ngModel)]="day.working" [name]="'working' + day.dayOfWeek" type="checkbox" (change)="updateSchedule(day)">
+              {{ fullDayName(day.dayOfWeek) }}
+            </label>
+            <input [(ngModel)]="day.startTime" [name]="'time' + day.dayOfWeek" type="time" [disabled]="!day.working" (change)="updateSchedule(day)">
+          </div>
+        </section>
+
+        <form class="panel exception-form" (ngSubmit)="saveException()">
+          <header class="section-head tight">
+            <div>
+              <h2>{{ exceptionForm.id ? 'Editar excepción' : 'Excepción' }}</h2>
+              <p>Permisos, faltas, cambios y vacaciones.</p>
+            </div>
+          </header>
+          <label>Colaborador
+            <select [(ngModel)]="exceptionForm.employeeId" name="exceptionEmployee" required>
+              <option *ngFor="let employee of employees()" [ngValue]="employee.id">{{ employee.name }}</option>
+            </select>
+          </label>
+          <label>Tipo
+            <select [(ngModel)]="exceptionForm.type" name="exceptionType" required>
+              <option *ngFor="let type of staffExceptionTypes()" [ngValue]="type.value">{{ type.label }}</option>
+            </select>
+          </label>
+          <div class="date-pair">
+            <label>Desde<input [(ngModel)]="exceptionForm.startDate" name="exceptionStart" type="date"></label>
+            <label>Hasta<input [(ngModel)]="exceptionForm.endDate" name="exceptionEnd" type="date"></label>
+          </div>
+          <label *ngIf="exceptionForm.type === 'CAMBIO_TURNO'">Nueva entrada<input [(ngModel)]="exceptionForm.startTime" name="exceptionStartTime" type="time"></label>
+          <label>Nota<input [(ngModel)]="exceptionForm.note" name="exceptionNote" placeholder="Motivo o detalle"></label>
+          <div class="form-actions">
+            <button class="primary" type="submit" [disabled]="savingStaff()"><svg lucideSave size="16"></svg>Guardar</button>
+            <button class="secondary" type="button" (click)="resetExceptionForm()">Limpiar</button>
+          </div>
+        </form>
+
+        <section class="panel exceptions-list" *ngIf="employeeExceptions().length">
+          <article class="exception-card" *ngFor="let exception of employeeExceptions()">
+            <div>
+              <strong>{{ exception.typeLabel }}</strong>
+              <small>{{ shortDate(exception.startDate) }} - {{ shortDate(exception.endDate) }}</small>
+              <em *ngIf="exception.note">{{ exception.note }}</em>
+            </div>
+            <div class="sale-actions">
+              <button class="secondary icon-action" type="button" (click)="editException(exception)" title="Editar">
+                <svg lucidePencil size="14"></svg>
+              </button>
+              <button class="danger icon-action" type="button" (click)="deleteException(exception)" title="Eliminar">
+                <svg lucideTrash2 size="14"></svg>
+              </button>
+            </div>
+          </article>
+        </section>
+      </aside>
     </section>
 
     <section *ngIf="tab() === 'dashboard'" class="dashboard" >

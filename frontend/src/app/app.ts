@@ -18,6 +18,7 @@ import {
   LucideSave,
   LucideTrash2,
   LucideUtensils,
+  LucideUsers,
   LucideWalletCards
 } from '@lucide/angular';
 import html2canvas from 'html2canvas';
@@ -25,7 +26,7 @@ import jsPDF from 'jspdf';
 import { forkJoin } from 'rxjs';
 import Swal from 'sweetalert2';
 
-type Tab = 'sale' | 'products' | 'history' | 'dashboard';
+type Tab = 'sale' | 'products' | 'history' | 'dashboard' | 'staff';
 type PaymentMethod = 'EFECTIVO' | 'QR' | 'YAPE' | 'VISA';
 type ProductStatusFilter = 'ACTIVE' | 'INACTIVE' | 'DELETED' | 'ALL';
 type RuntimeWindow = Window & { __env?: { apiUrl?: string } };
@@ -130,6 +131,60 @@ interface CashClosure {
   paymentsByMethod: PaymentMethodSummary[];
 }
 
+interface StaffRole {
+  id: number;
+  name: string;
+  active: boolean;
+}
+
+interface Employee {
+  id: number;
+  name: string;
+  roleId: number;
+  roleName: string;
+  active: boolean;
+  inactiveReason?: string;
+}
+
+type StaffExceptionType = 'PERMISO' | 'FALTA' | 'DESCANSO' | 'VACACIONES' | 'CAMBIO_TURNO';
+
+interface StaffSchedule {
+  id: number;
+  dayOfWeek: string;
+  working: boolean;
+  startTime?: string;
+}
+
+interface StaffException {
+  id: number;
+  employeeId: number;
+  employeeName: string;
+  type: StaffExceptionType;
+  typeLabel: string;
+  startDate: string;
+  endDate: string;
+  startTime?: string;
+  note?: string;
+}
+
+interface StaffWeek {
+  weekStart: string;
+  weekEnd: string;
+  rows: Array<{
+    employee: Employee;
+    days: Array<{
+      date: string;
+      dayOfWeek: string;
+      working: boolean;
+      startTime?: string;
+      status: string;
+      note?: string;
+      exceptionType?: StaffExceptionType;
+      exceptionId?: number;
+    }>;
+  }>;
+}
+
 @Component({
   selector: 'app-root',
   imports: [
@@ -150,6 +205,7 @@ interface CashClosure {
     LucideSave,
     LucideTrash2,
     LucideUtensils,
+    LucideUsers,
     LucideWalletCards
   ],
   templateUrl: './app.html',
@@ -172,15 +228,23 @@ export class App implements OnInit {
   sales = signal<Sale[]>([]);
   selectedSale = signal<Sale | null>(null);
   dashboard = signal<Dashboard | null>(null);
+  staffRoles = signal<StaffRole[]>([]);
+  employees = signal<Employee[]>([]);
+  staffWeek = signal<StaffWeek | null>(null);
+  selectedEmployeeId = signal<number | null>(null);
+  employeeSchedule = signal<StaffSchedule[]>([]);
+  employeeExceptions = signal<StaffException[]>([]);
   saleDate = this.currentDateInput();
   dashboardDate = this.currentDateInput();
   historyDate = this.currentDateInput();
+  staffWeekDate = this.currentDateInput();
   historySaleDates = signal<string[]>([]);
   historyRecent = false;
   loading = signal(false);
   savingSale = signal(false);
   savingHistoryPayment = signal(false);
   savingCashClosure = signal(false);
+  savingStaff = signal(false);
   editingSaleId = signal<number | null>(null);
 
   productForm = {
@@ -191,6 +255,24 @@ export class App implements OnInit {
     active: true,
     promoEligible: true,
     deleted: false
+  };
+
+  employeeForm = {
+    id: 0,
+    name: '',
+    roleId: 0,
+    active: true,
+    inactiveReason: ''
+  };
+  roleName = '';
+  exceptionForm = {
+    id: 0,
+    employeeId: 0,
+    type: 'PERMISO' as StaffExceptionType,
+    startDate: this.currentDateInput(),
+    endDate: this.currentDateInput(),
+    startTime: '18:00',
+    note: ''
   };
 
   takeaway = false;
@@ -310,6 +392,7 @@ export class App implements OnInit {
     this.loadDashboard();
     this.loadSales();
     this.loadHistorySaleDates();
+    this.loadStaff();
   }
 
   loadCategories(): void {
@@ -1360,6 +1443,327 @@ export class App implements OnInit {
 
   paymentMethodDetail(row: PaymentMethodSummary): string {
     return `${row.sales} venta${Number(row.sales) === 1 ? '' : 's'} · ${row.payments} pago${Number(row.payments) === 1 ? '' : 's'}`;
+  }
+
+  loadStaff(): void {
+    forkJoin({
+      roles: this.http.get<StaffRole[]>(`${this.api}/staff/roles`, this.options()),
+      employees: this.http.get<Employee[]>(`${this.api}/staff/employees`, this.options()),
+      week: this.http.get<StaffWeek>(`${this.api}/staff/week?date=${this.staffWeekDate}`, this.options())
+    }).subscribe({
+      next: ({ roles, employees, week }) => {
+        this.staffRoles.set(roles);
+        this.employees.set(employees);
+        this.staffWeek.set(week);
+        if (!this.employeeForm.roleId && roles.length) {
+          this.employeeForm.roleId = roles[0].id;
+        }
+        if (!this.selectedEmployeeId() && employees.length) {
+          this.selectEmployee(employees[0]);
+        }
+      },
+      error: error => Swal.fire('No se pudo cargar personal', this.errorMessage(error), 'error')
+    });
+  }
+
+  loadStaffWeek(): void {
+    this.http.get<StaffWeek>(`${this.api}/staff/week?date=${this.staffWeekDate}`, this.options()).subscribe({
+      next: week => this.staffWeek.set(week),
+      error: error => Swal.fire('No se pudo cargar horario', this.errorMessage(error), 'error')
+    });
+  }
+
+  saveRole(): void {
+    const name = this.roleName.trim();
+    if (!name) {
+      Swal.fire('Rol vacío', 'Escribe el nombre del rol.', 'warning');
+      return;
+    }
+    this.savingStaff.set(true);
+    this.http.post<StaffRole>(`${this.api}/staff/roles`, { name }, this.options()).subscribe({
+      next: role => {
+        this.roleName = '';
+        this.employeeForm.roleId = role.id;
+        this.loadStaff();
+        Swal.fire('Rol guardado', 'Ya puedes asignarlo a un colaborador.', 'success');
+      },
+      error: error => Swal.fire('No se pudo guardar', this.errorMessage(error), 'error')
+    }).add(() => this.savingStaff.set(false));
+  }
+
+  saveEmployee(): void {
+    if (!this.employeeForm.name.trim() || !this.employeeForm.roleId) {
+      Swal.fire('Datos incompletos', 'Ingresa nombre y rol del colaborador.', 'warning');
+      return;
+    }
+    this.savingStaff.set(true);
+    const payload = {
+      name: this.employeeForm.name.trim(),
+      roleId: Number(this.employeeForm.roleId),
+      active: this.employeeForm.active,
+      inactiveReason: this.employeeForm.inactiveReason
+    };
+    const request = this.employeeForm.id
+      ? this.http.put<Employee>(`${this.api}/staff/employees/${this.employeeForm.id}`, payload, this.options())
+      : this.http.post<Employee>(`${this.api}/staff/employees`, payload, this.options());
+    request.subscribe({
+      next: employee => {
+        this.resetEmployeeForm();
+        this.loadStaff();
+        this.selectEmployee(employee);
+        Swal.fire('Colaborador guardado', 'El horario base quedó listo para editar.', 'success');
+      },
+      error: error => Swal.fire('No se pudo guardar', this.errorMessage(error), 'error')
+    }).add(() => this.savingStaff.set(false));
+  }
+
+  editEmployee(employee: Employee): void {
+    this.employeeForm = {
+      id: employee.id,
+      name: employee.name,
+      roleId: employee.roleId,
+      active: employee.active,
+      inactiveReason: employee.inactiveReason || ''
+    };
+    this.selectEmployee(employee);
+  }
+
+  resetEmployeeForm(): void {
+    this.employeeForm = {
+      id: 0,
+      name: '',
+      roleId: this.staffRoles()[0]?.id || 0,
+      active: true,
+      inactiveReason: ''
+    };
+  }
+
+  selectEmployee(employee: Employee): void {
+    this.selectedEmployeeId.set(employee.id);
+    this.exceptionForm.employeeId = employee.id;
+    this.loadEmployeeDetails(employee.id);
+  }
+
+  loadEmployeeDetails(employeeId: number): void {
+    forkJoin({
+      schedule: this.http.get<StaffSchedule[]>(`${this.api}/staff/employees/${employeeId}/schedule`, this.options()),
+      exceptions: this.http.get<StaffException[]>(`${this.api}/staff/employees/${employeeId}/exceptions`, this.options())
+    }).subscribe({
+      next: ({ schedule, exceptions }) => {
+        this.employeeSchedule.set(this.sortSchedule(schedule));
+        this.employeeExceptions.set(exceptions);
+      },
+      error: error => Swal.fire('No se pudo cargar detalle', this.errorMessage(error), 'error')
+    });
+  }
+
+  updateSchedule(day: StaffSchedule): void {
+    const employeeId = this.selectedEmployeeId();
+    if (!employeeId) {
+      return;
+    }
+    const payload = {
+      dayOfWeek: day.dayOfWeek,
+      working: day.working,
+      startTime: day.working ? day.startTime || '18:00' : null
+    };
+    this.http.put<StaffSchedule>(`${this.api}/staff/employees/${employeeId}/schedule`, payload, this.options()).subscribe({
+      next: updated => {
+        this.employeeSchedule.set(this.sortSchedule(this.employeeSchedule().map(item => item.dayOfWeek === updated.dayOfWeek ? updated : item)));
+        this.loadStaffWeek();
+      },
+      error: error => Swal.fire('No se pudo actualizar horario', this.errorMessage(error), 'error')
+    });
+  }
+
+  saveException(): void {
+    if (!this.exceptionForm.employeeId) {
+      Swal.fire('Selecciona colaborador', 'Elige a quien aplica la excepción.', 'warning');
+      return;
+    }
+    this.savingStaff.set(true);
+    const payload = {
+      employeeId: Number(this.exceptionForm.employeeId),
+      type: this.exceptionForm.type,
+      startDate: this.exceptionForm.startDate,
+      endDate: this.exceptionForm.endDate,
+      startTime: this.exceptionForm.type === 'CAMBIO_TURNO' ? this.exceptionForm.startTime : null,
+      note: this.exceptionForm.note
+    };
+    const request = this.exceptionForm.id
+      ? this.http.put<StaffException>(`${this.api}/staff/exceptions/${this.exceptionForm.id}`, payload, this.options())
+      : this.http.post<StaffException>(`${this.api}/staff/exceptions`, payload, this.options());
+    request.subscribe({
+      next: () => {
+        this.resetExceptionForm();
+        const employeeId = this.selectedEmployeeId();
+        if (employeeId) {
+          this.loadEmployeeDetails(employeeId);
+        }
+        this.loadStaffWeek();
+        Swal.fire('Excepción guardada', 'El horario semanal fue actualizado.', 'success');
+      },
+      error: error => Swal.fire('No se pudo guardar', this.errorMessage(error), 'error')
+    }).add(() => this.savingStaff.set(false));
+  }
+
+  editException(exception: StaffException): void {
+    this.exceptionForm = {
+      id: exception.id,
+      employeeId: exception.employeeId,
+      type: exception.type,
+      startDate: exception.startDate,
+      endDate: exception.endDate,
+      startTime: exception.startTime || '18:00',
+      note: exception.note || ''
+    };
+    const employee = this.employees().find(item => item.id === exception.employeeId);
+    if (employee) {
+      this.selectEmployee(employee);
+    }
+  }
+
+  deleteException(exception: StaffException): void {
+    Swal.fire({
+      title: 'Eliminar excepción',
+      text: `${exception.employeeName} · ${exception.typeLabel}`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Eliminar',
+      cancelButtonText: 'Cancelar'
+    }).then(result => {
+      if (!result.isConfirmed) {
+        return;
+      }
+      this.http.delete(`${this.api}/staff/exceptions/${exception.id}`, this.options()).subscribe({
+        next: () => {
+          const employeeId = this.selectedEmployeeId();
+          if (employeeId) {
+            this.loadEmployeeDetails(employeeId);
+          }
+          this.loadStaffWeek();
+        },
+        error: error => Swal.fire('No se pudo eliminar', this.errorMessage(error), 'error')
+      });
+    });
+  }
+
+  toggleEmployeeStatus(employee: Employee): void {
+    if (employee.active) {
+      Swal.fire({
+        title: 'Desactivar colaborador',
+        input: 'textarea',
+        inputPlaceholder: 'Motivo de salida o pausa...',
+        showCancelButton: true,
+        confirmButtonText: 'Desactivar',
+        cancelButtonText: 'Cancelar',
+        inputValidator: value => !value?.trim() ? 'Ingresa el motivo.' : null
+      }).then(result => {
+        if (!result.isConfirmed) {
+          return;
+        }
+        this.updateEmployeeStatus(employee, false, result.value || '');
+      });
+      return;
+    }
+    this.updateEmployeeStatus(employee, true, '');
+  }
+
+  updateEmployeeStatus(employee: Employee, active: boolean, inactiveReason: string): void {
+    this.http.patch<Employee>(`${this.api}/staff/employees/${employee.id}/status`, { active, inactiveReason }, this.options()).subscribe({
+      next: () => this.loadStaff(),
+      error: error => Swal.fire('No se pudo actualizar', this.errorMessage(error), 'error')
+    });
+  }
+
+  async downloadStaffScheduleImage(): Promise<void> {
+    const element = document.getElementById('staff-schedule-board');
+    if (!element) {
+      return;
+    }
+    const canvas = await html2canvas(element, { backgroundColor: '#ffffff', scale: 2 });
+    const link = document.createElement('a');
+    link.download = `bar-dmaced-horario-${this.staffWeek()?.weekStart || this.staffWeekDate}.png`;
+    link.href = canvas.toDataURL('image/png');
+    link.click();
+  }
+
+  resetExceptionForm(): void {
+    this.exceptionForm = {
+      id: 0,
+      employeeId: this.selectedEmployeeId() || this.employees()[0]?.id || 0,
+      type: 'PERMISO',
+      startDate: this.currentDateInput(),
+      endDate: this.currentDateInput(),
+      startTime: '18:00',
+      note: ''
+    };
+  }
+
+  staffExceptionTypes(): Array<{ value: StaffExceptionType; label: string }> {
+    return [
+      { value: 'PERMISO', label: 'Permiso' },
+      { value: 'FALTA', label: 'Falta' },
+      { value: 'DESCANSO', label: 'Descanso' },
+      { value: 'VACACIONES', label: 'Vacaciones' },
+      { value: 'CAMBIO_TURNO', label: 'Cambio de turno' }
+    ];
+  }
+
+  dayName(day: string): string {
+    const labels: Record<string, string> = {
+      MONDAY: 'Lun',
+      TUESDAY: 'Mar',
+      WEDNESDAY: 'Mié',
+      THURSDAY: 'Jue',
+      FRIDAY: 'Vie',
+      SATURDAY: 'Sáb',
+      SUNDAY: 'Dom'
+    };
+    return labels[day] || day;
+  }
+
+  fullDayName(day: string): string {
+    const labels: Record<string, string> = {
+      MONDAY: 'Lunes',
+      TUESDAY: 'Martes',
+      WEDNESDAY: 'Miércoles',
+      THURSDAY: 'Jueves',
+      FRIDAY: 'Viernes',
+      SATURDAY: 'Sábado',
+      SUNDAY: 'Domingo'
+    };
+    return labels[day] || day;
+  }
+
+  staffDayClass(day: StaffWeek['rows'][number]['days'][number]): string {
+    if (day.exceptionType === 'VACACIONES') {
+      return 'vacation';
+    }
+    if (day.exceptionType === 'FALTA') {
+      return 'absent';
+    }
+    if (day.exceptionType === 'PERMISO') {
+      return 'permission';
+    }
+    if (day.exceptionType === 'CAMBIO_TURNO') {
+      return 'changed';
+    }
+    return day.working ? 'working' : 'rest';
+  }
+
+  selectedEmployee(): Employee | null {
+    const id = this.selectedEmployeeId();
+    return this.employees().find(employee => employee.id === id) || null;
+  }
+
+  activeEmployeesCount(): number {
+    return this.employees().filter(employee => employee.active).length;
+  }
+
+  private sortSchedule(schedule: StaffSchedule[]): StaffSchedule[] {
+    const order = ['MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY', 'SUNDAY'];
+    return [...schedule].sort((a, b) => order.indexOf(a.dayOfWeek) - order.indexOf(b.dayOfWeek));
   }
 
   shortDate(value: string): string {
