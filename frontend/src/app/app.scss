@@ -1409,6 +1409,13 @@ nav button.active {
   overflow: auto;
 }
 
+.schedule-screen {
+  display: block;
+  height: calc(100vh - 28px);
+  overflow: auto;
+  padding-bottom: 28px;
+}
+
 .people-screen {
   align-content: start;
   grid-template-rows: auto minmax(0, 1fr);
@@ -1423,7 +1430,17 @@ nav button.active {
 }
 
 .staff-layout {
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 360px);
+  grid-template-columns: minmax(760px, 1fr) minmax(280px, 330px);
+  overflow: auto;
+  padding-bottom: 12px;
+}
+
+.schedule-screen .staff-layout {
+  align-items: start;
+  grid-template-columns: minmax(900px, 1fr) minmax(280px, 330px);
+  margin-top: 12px;
+  min-height: auto;
+  overflow: visible;
 }
 
 .staff-layout.no-editor {
@@ -1449,7 +1466,13 @@ nav button.active {
 
 .staff-main {
   grid-template-rows: minmax(0, 1fr);
-  overflow: hidden;
+  min-width: 760px;
+  overflow: auto;
+}
+
+.schedule-screen .staff-main {
+  min-width: 900px;
+  overflow: visible;
 }
 
 .staff-side {
@@ -1458,6 +1481,13 @@ nav button.active {
   max-height: 100%;
   overflow: auto;
   padding-right: 2px;
+  position: sticky;
+  right: 0;
+  top: 0;
+}
+
+.schedule-screen .staff-side {
+  max-height: calc(100vh - 118px);
 }
 
 .staff-head {
@@ -1492,7 +1522,14 @@ nav button.active {
   align-content: start;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
+  max-height: 100%;
   min-height: 0;
+  overflow: hidden;
+}
+
+.schedule-screen .staff-board-panel {
+  display: block;
+  max-height: none;
   overflow: visible;
 }
 
@@ -1573,9 +1610,15 @@ nav button.active {
 }
 
 .staff-table {
+  align-content: start;
   display: grid;
   gap: 8px;
   min-width: 0;
+  overflow: auto;
+  padding-bottom: 12px;
+}
+
+.schedule-screen .staff-table {
   overflow: visible;
 }
 
@@ -1789,13 +1832,26 @@ nav button.active {
   .history-layout,
   .two-columns,
   .staff-screen,
-  .staff-layout,
   .staff-people-view,
   .dashboard-visual-grid,
   .dashboard {
     height: auto;
     grid-template-columns: 1fr;
     overflow: visible;
+  }
+
+  .staff-layout {
+    grid-template-columns: minmax(720px, 1fr);
+    height: auto;
+    overflow: auto;
+  }
+
+  .staff-main {
+    min-width: 720px;
+  }
+
+  .staff-side {
+    position: static;
   }
 
   .dashboard-summary,
