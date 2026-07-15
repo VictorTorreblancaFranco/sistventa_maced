@@ -120,7 +120,7 @@ public class StaffService {
     List<EmployeeSchedule> schedules = ensureWeekSchedule(employee, weekStart);
     return schedules.stream()
         .sorted(Comparator.comparing(EmployeeSchedule::getDayOfWeek))
-        .map(this::toSchedule)
+        .map(schedule -> toVisibleSchedule(schedule, weekStart))
         .toList();
   }
 
@@ -198,6 +198,9 @@ public class StaffService {
         return new StaffDayResponse(date, day, works, start, false, works ? shiftLabel(start, false) : exception.getType().getLabel(), exception.getNote(), exception.getType(), exception.getId());
       }
       EmployeeSchedule schedule = schedules.stream().filter(item -> item.getDayOfWeek() == day).findFirst().orElse(null);
+      if (shouldHideUneditedFutureSchedule(weekStart, schedule)) {
+        schedule = null;
+      }
       boolean works = schedule != null && schedule.isWorking();
       LocalTime start = works ? schedule.getStartTime() : null;
       boolean doubleShift = isDoubleShift(works, start, schedule != null && schedule.isDoubleShift());
@@ -255,6 +258,10 @@ public class StaffService {
     return weekStart.isAfter(weekStart(LocalDate.now()))
         && schedules.stream().noneMatch(EmployeeSchedule::isManuallyEdited)
         && schedules.stream().anyMatch(EmployeeSchedule::isWorking);
+  }
+
+  private boolean shouldHideUneditedFutureSchedule(LocalDate weekStart, EmployeeSchedule schedule) {
+    return schedule != null && weekStart.isAfter(weekStart(LocalDate.now())) && !schedule.isManuallyEdited();
   }
 
   private boolean looksCopiedFromPreviousWeek(Employee employee, LocalDate weekStart, List<EmployeeSchedule> schedules) {
@@ -336,6 +343,13 @@ public class StaffService {
   private ScheduleResponse toSchedule(EmployeeSchedule schedule) {
     boolean doubleShift = isDoubleShift(schedule.isWorking(), schedule.getStartTime(), schedule.isDoubleShift());
     return new ScheduleResponse(schedule.getId(), schedule.getWeekStart(), schedule.getDayOfWeek(), schedule.isWorking(), schedule.getStartTime(), doubleShift);
+  }
+
+  private ScheduleResponse toVisibleSchedule(EmployeeSchedule schedule, LocalDate weekStart) {
+    if (shouldHideUneditedFutureSchedule(weekStart, schedule)) {
+      return new ScheduleResponse(schedule.getId(), schedule.getWeekStart(), schedule.getDayOfWeek(), false, null, false);
+    }
+    return toSchedule(schedule);
   }
 
   private ExceptionResponse toException(EmployeeException exception) {
