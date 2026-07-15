@@ -226,16 +226,13 @@ public class StaffService {
       if (schedules.stream().anyMatch(schedule -> schedule.getDayOfWeek() == day)) {
         continue;
       }
-      EmployeeSchedule legacy = scheduleRepository.findFirstByEmployeeIdAndDayOfWeekAndWeekStartIsNull(employee.getId(), day).orElse(null);
-      EmployeeSchedule schedule = legacy == null ? new EmployeeSchedule() : legacy;
+      EmployeeSchedule schedule = new EmployeeSchedule();
       schedule.setEmployee(employee);
       schedule.setWeekStart(weekStart);
       schedule.setDayOfWeek(day);
-      if (legacy == null) {
-        schedule.setWorking(day != DayOfWeek.MONDAY);
-        schedule.setStartTime(day == DayOfWeek.MONDAY ? null : LocalTime.of(18, 0));
-        schedule.setDoubleShift(false);
-      }
+      schedule.setWorking(false);
+      schedule.setStartTime(null);
+      schedule.setDoubleShift(false);
       schedules.add(scheduleRepository.save(schedule));
     }
     return schedules;

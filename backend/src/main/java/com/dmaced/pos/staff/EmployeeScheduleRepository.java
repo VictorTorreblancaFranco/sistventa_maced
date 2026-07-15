@@ -10,5 +10,4 @@ public interface EmployeeScheduleRepository extends JpaRepository<EmployeeSchedu
   List<EmployeeSchedule> findByEmployeeId(Long employeeId);
   List<EmployeeSchedule> findByEmployeeIdAndWeekStart(Long employeeId, LocalDate weekStart);
   Optional<EmployeeSchedule> findByEmployeeIdAndWeekStartAndDayOfWeek(Long employeeId, LocalDate weekStart, DayOfWeek dayOfWeek);
-  Optional<EmployeeSchedule> findFirstByEmployeeIdAndDayOfWeekAndWeekStartIsNull(Long employeeId, DayOfWeek dayOfWeek);
 }
