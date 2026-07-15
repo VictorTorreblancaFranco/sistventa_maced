@@ -1691,11 +1691,6 @@ nav button.active {
   text-align: left;
 }
 
-.staff-row.active .staff-person {
-  background: #f3faf6;
-  border-color: #b8d8ca;
-}
-
 .staff-person,
 .staff-day {
   background: #fffdf8;
@@ -1720,7 +1715,7 @@ nav button.active {
 
 .staff-day {
   align-content: center;
-  border-left: 3px solid transparent;
+  border-left: 3px solid;
 }
 
 .staff-day b {
@@ -1743,21 +1738,24 @@ nav button.active {
 }
 
 .staff-day.opening {
-  background: #edf9f1;
-  border-color: #d5eadc;
-  border-left-color: #2f9b61;
+  background: #e5f8df;
+  border-color: #bfe3b5;
+  border-left-color: #2d8f3f;
+  color: #1f5f2f;
 }
 
 .staff-day.closing {
-  background: #eef7f7;
-  border-color: #d3e6e5;
-  border-left-color: #1f7a72;
+  background: #e4f1ff;
+  border-color: #bdd7f4;
+  border-left-color: #2f67a3;
+  color: #224f7f;
 }
 
 .staff-day.double {
-  background: #eef5ff;
-  border-color: #d7e1f3;
-  border-left-color: #3f69b1;
+  background: #f0e9ff;
+  border-color: #d4c2f3;
+  border-left-color: #6f4fb5;
+  color: #4b3388;
 }
 
 .staff-day.rest {
