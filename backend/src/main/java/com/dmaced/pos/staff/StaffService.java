@@ -251,7 +251,7 @@ public class StaffService {
   }
 
   private boolean looksCopiedFromPreviousWeek(Employee employee, LocalDate weekStart, List<EmployeeSchedule> schedules) {
-    if (!weekStart.isAfter(weekStart(LocalDate.now())) || schedules.stream().noneMatch(EmployeeSchedule::isWorking)) {
+    if (schedules.stream().noneMatch(EmployeeSchedule::isWorking)) {
       return false;
     }
     List<EmployeeSchedule> previous = scheduleRepository.findByEmployeeIdAndWeekStart(employee.getId(), weekStart.minusWeeks(1));
@@ -271,7 +271,7 @@ public class StaffService {
 
   private boolean sameScheduleDay(EmployeeSchedule currentDay, EmployeeSchedule previousDay) {
     return currentDay.isWorking() == previousDay.isWorking()
-        && currentDay.isDoubleShift() == previousDay.isDoubleShift()
+        && isDoubleShift(currentDay.isWorking(), currentDay.getStartTime(), currentDay.isDoubleShift()) == isDoubleShift(previousDay.isWorking(), previousDay.getStartTime(), previousDay.isDoubleShift())
         && java.util.Objects.equals(currentDay.getStartTime(), previousDay.getStartTime());
   }
 
