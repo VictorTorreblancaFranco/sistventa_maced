@@ -1794,11 +1794,19 @@ export class App implements OnInit {
       startTime: day.working ? day.startTime || '18:00' : null,
       doubleShift: day.working ? !!day.doubleShift : false
     };
+    const optimistic: StaffSchedule = {
+      ...day,
+      working: payload.working,
+      startTime: payload.startTime || undefined,
+      doubleShift: payload.doubleShift
+    };
+    this.employeeSchedule.set(this.sortSchedule(this.employeeSchedule().map(item => item.dayOfWeek === optimistic.dayOfWeek ? optimistic : item)));
+    this.patchStaffWeekDay(employeeId, optimistic);
     this.http.put<StaffSchedule>(`${this.api}/staff/employees/${employeeId}/schedule?date=${this.staffWeekDate}`, payload, this.options()).subscribe({
       next: updated => {
-        this.employeeSchedule.set(this.sortSchedule(this.employeeSchedule().map(item => item.dayOfWeek === updated.dayOfWeek ? updated : item)));
-        this.patchStaffWeekDay(employeeId, updated);
-        this.loadStaffWeek();
+        const merged = { ...updated, doubleShift: payload.doubleShift };
+        this.employeeSchedule.set(this.sortSchedule(this.employeeSchedule().map(item => item.dayOfWeek === merged.dayOfWeek ? merged : item)));
+        this.patchStaffWeekDay(employeeId, merged);
       },
       error: error => Swal.fire('No se pudo actualizar horario', this.errorMessage(error), 'error')
     });
