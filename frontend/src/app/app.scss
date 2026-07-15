@@ -1742,10 +1742,22 @@ nav button.active {
   white-space: nowrap;
 }
 
-.staff-day.working {
-  background: #effaf4;
-  border-color: #d8e8df;
-  border-left-color: #1f7a5f;
+.staff-day.opening {
+  background: #edf9f1;
+  border-color: #d5eadc;
+  border-left-color: #2f9b61;
+}
+
+.staff-day.closing {
+  background: #eef7f7;
+  border-color: #d3e6e5;
+  border-left-color: #1f7a72;
+}
+
+.staff-day.double {
+  background: #eef5ff;
+  border-color: #d7e1f3;
+  border-left-color: #3f69b1;
 }
 
 .staff-day.rest {
@@ -1880,7 +1892,6 @@ nav button.active {
 
 .double-shift {
   grid-column: 1 / -1;
-  font-size: 12px;
   justify-self: start;
   padding-left: 24px;
 }

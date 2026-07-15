@@ -2056,7 +2056,14 @@ export class App implements OnInit {
     if (day.exceptionType === 'CAMBIO_TURNO') {
       return 'changed';
     }
-    return day.working ? 'working' : 'rest';
+    if (!day.working) {
+      return 'rest';
+    }
+    if (day.doubleShift || this.normalize(day.status || '') === 'dobleteo') {
+      return 'double';
+    }
+    const hour = Number((day.startTime || '').slice(0, 2));
+    return Number.isFinite(hour) && hour < 15 ? 'opening' : 'closing';
   }
 
   staffDayLabel(day: StaffWeek['rows'][number]['days'][number]): string {
