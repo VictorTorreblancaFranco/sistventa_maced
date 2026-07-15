@@ -243,6 +243,8 @@ export class App implements OnInit {
   dashboardDate = this.currentDateInput();
   historyDate = this.currentDateInput();
   staffWeekDate = this.currentDateInput();
+  private staffWeekRequestId = 0;
+  private employeeScheduleRequestId = 0;
   historySaleDates = signal<string[]>([]);
   historyRecent = false;
   loading = signal(false);
@@ -1466,23 +1468,31 @@ export class App implements OnInit {
         if (!this.selectedEmployeeId() && employees.length) {
           this.selectEmployee(employees[0]);
         }
-        this.loadStaffWeek(false);
+        this.loadStaffWeek(false, this.staffWeekDate);
       },
       error: error => Swal.fire('No se pudo cargar personal', this.errorMessage(error), 'error')
     });
   }
 
-  loadStaffWeek(showError = true): void {
-    this.staffRequest(() => this.http.get<StaffWeek>(`${this.api}/staff/week?date=${this.staffWeekDate}`, this.options())).subscribe({
+  loadStaffWeek(showError = true, date = this.staffWeekDate): void {
+    const requestDate = date;
+    const requestId = ++this.staffWeekRequestId;
+    this.staffRequest(() => this.http.get<StaffWeek>(`${this.api}/staff/week?date=${requestDate}`, this.options())).subscribe({
       next: week => {
+        if (requestId !== this.staffWeekRequestId) {
+          return;
+        }
         this.staffWeek.set(this.normalizeStaffWeek(week));
         this.staffWeekDate = week.weekStart;
         const employeeId = this.selectedEmployeeId();
         if (employeeId) {
-          this.loadEmployeeDetails(employeeId);
+          this.loadEmployeeDetails(employeeId, week.weekStart);
         }
       },
       error: error => {
+        if (requestId !== this.staffWeekRequestId) {
+          return;
+        }
         this.staffWeek.set(null);
         if (showError) {
           Swal.fire('No se pudo cargar horario', this.errorMessage(error), 'error');
@@ -1501,7 +1511,9 @@ export class App implements OnInit {
       return;
     }
     this.staffWeekDate = monday;
-    this.loadStaffWeek();
+    this.staffWeek.set(null);
+    this.employeeSchedule.set([]);
+    this.loadStaffWeek(true, monday);
   }
 
   openRoleDialog(): void {
@@ -1767,12 +1779,17 @@ export class App implements OnInit {
     this.loadEmployeeDetails(employee.id);
   }
 
-  loadEmployeeDetails(employeeId: number): void {
+  loadEmployeeDetails(employeeId: number, date = this.staffWeekDate): void {
+    const requestId = ++this.employeeScheduleRequestId;
+    const requestDate = date;
     forkJoin({
-      schedule: this.http.get<StaffSchedule[]>(`${this.api}/staff/employees/${employeeId}/schedule?date=${this.staffWeekDate}`, this.options()),
+      schedule: this.http.get<StaffSchedule[]>(`${this.api}/staff/employees/${employeeId}/schedule?date=${requestDate}`, this.options()),
       exceptions: this.http.get<StaffException[]>(`${this.api}/staff/employees/${employeeId}/exceptions`, this.options())
     }).subscribe({
       next: ({ schedule, exceptions }) => {
+        if (requestId !== this.employeeScheduleRequestId || requestDate !== this.staffWeekDate) {
+          return;
+        }
         this.employeeSchedule.set(this.sortSchedule(schedule.map(item => this.withDoubleShiftFallback(item))));
         this.employeeExceptions.set(exceptions);
       },
@@ -1785,6 +1802,7 @@ export class App implements OnInit {
     if (!employeeId) {
       return;
     }
+    const weekDate = this.staffWeek()?.weekStart || this.staffWeekDate;
     if (!day.working) {
       day.doubleShift = false;
     }
@@ -1802,7 +1820,7 @@ export class App implements OnInit {
     };
     this.employeeSchedule.set(this.sortSchedule(this.employeeSchedule().map(item => item.dayOfWeek === optimistic.dayOfWeek ? optimistic : item)));
     this.patchStaffWeekDay(employeeId, optimistic);
-    this.http.put<StaffSchedule>(`${this.api}/staff/employees/${employeeId}/schedule?date=${this.staffWeekDate}`, payload, this.options()).subscribe({
+    this.http.put<StaffSchedule>(`${this.api}/staff/employees/${employeeId}/schedule?date=${weekDate}`, payload, this.options()).subscribe({
       next: updated => {
         const merged = { ...updated, doubleShift: payload.doubleShift };
         this.employeeSchedule.set(this.sortSchedule(this.employeeSchedule().map(item => item.dayOfWeek === merged.dayOfWeek ? merged : item)));
