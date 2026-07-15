@@ -1797,19 +1797,51 @@ export class App implements OnInit {
     this.http.put<StaffSchedule>(`${this.api}/staff/employees/${employeeId}/schedule?date=${this.staffWeekDate}`, payload, this.options()).subscribe({
       next: updated => {
         this.employeeSchedule.set(this.sortSchedule(this.employeeSchedule().map(item => item.dayOfWeek === updated.dayOfWeek ? updated : item)));
+        this.patchStaffWeekDay(employeeId, updated);
         this.loadStaffWeek();
       },
       error: error => Swal.fire('No se pudo actualizar horario', this.errorMessage(error), 'error')
     });
   }
 
-  toggleDoubleShift(day: StaffSchedule, event: Event): void {
-    day.doubleShift = (event.target as HTMLInputElement).checked;
+  toggleDoubleShift(day: StaffSchedule, checked: boolean): void {
+    day.doubleShift = checked;
     if (day.doubleShift) {
       day.working = true;
       day.startTime = '12:00';
     }
     this.updateSchedule(day);
+  }
+
+  private patchStaffWeekDay(employeeId: number, updated: StaffSchedule): void {
+    const week = this.staffWeek();
+    if (!week) {
+      return;
+    }
+    this.staffWeek.set({
+      ...week,
+      rows: week.rows.map(row => row.employee.id !== employeeId ? row : {
+        ...row,
+        days: row.days.map(day => day.dayOfWeek !== updated.dayOfWeek ? day : {
+          ...day,
+          working: updated.working,
+          startTime: updated.startTime,
+          doubleShift: updated.doubleShift,
+          status: this.scheduleStatusLabel(updated)
+        })
+      })
+    });
+  }
+
+  private scheduleStatusLabel(schedule: StaffSchedule): string {
+    if (!schedule.working) {
+      return 'Descanso';
+    }
+    if (schedule.doubleShift) {
+      return 'Dobleteo';
+    }
+    const hour = Number((schedule.startTime || '').slice(0, 2));
+    return Number.isFinite(hour) && hour < 15 ? 'Apertura' : 'Cierre';
   }
 
   saveException(): void {

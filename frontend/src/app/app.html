@@ -573,7 +573,7 @@
               </label>
               <input [(ngModel)]="day.startTime" [name]="'time' + day.dayOfWeek" type="time" [disabled]="!day.working" (change)="updateSchedule(day)">
               <label class="check double-shift">
-                <input [(ngModel)]="day.doubleShift" [name]="'double' + day.dayOfWeek" type="checkbox" (change)="toggleDoubleShift(day, $event)">
+                <input [ngModel]="day.doubleShift" [name]="'double' + day.dayOfWeek" type="checkbox" (ngModelChange)="toggleDoubleShift(day, $event)">
                 Dobleteo
               </label>
             </div>
