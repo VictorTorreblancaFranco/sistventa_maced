@@ -1803,7 +1803,8 @@ export class App implements OnInit {
     });
   }
 
-  toggleDoubleShift(day: StaffSchedule): void {
+  toggleDoubleShift(day: StaffSchedule, event: Event): void {
+    day.doubleShift = (event.target as HTMLInputElement).checked;
     if (day.doubleShift) {
       day.working = true;
       day.startTime = '12:00';
@@ -2022,7 +2023,7 @@ export class App implements OnInit {
     if (!day.working) {
       return day.status || 'Descanso';
     }
-    if (day.doubleShift) {
+    if (day.doubleShift || this.normalize(day.status || '') === 'dobleteo') {
       return 'Dobleteo';
     }
     const hour = Number((day.startTime || '').slice(0, 2));
