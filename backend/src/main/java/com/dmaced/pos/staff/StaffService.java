@@ -195,7 +195,7 @@ public class StaffService {
       if (exception != null) {
         boolean works = exception.getType() == AbsenceType.CAMBIO_TURNO;
         LocalTime start = works ? exception.getStartTime() : null;
-        return new StaffDayResponse(date, day, works, start, false, works ? shiftLabel(start, false) : exception.getType().getLabel(), exception.getNote(), exception.getType(), exception.getId());
+        return new StaffDayResponse(date, day, works, start, false, true, works ? shiftLabel(start, false) : exception.getType().getLabel(), exception.getNote(), exception.getType(), exception.getId());
       }
       EmployeeSchedule schedule = schedules.stream().filter(item -> item.getDayOfWeek() == day).findFirst().orElse(null);
       if (shouldHideUneditedFutureSchedule(weekStart, schedule)) {
@@ -204,7 +204,8 @@ public class StaffService {
       boolean works = schedule != null && schedule.isWorking();
       LocalTime start = works ? schedule.getStartTime() : null;
       boolean doubleShift = isDoubleShift(works, start, schedule != null && schedule.isDoubleShift());
-      return new StaffDayResponse(date, day, works, start, doubleShift, works ? shiftLabel(start, doubleShift) : "Descanso", null, null, null);
+      boolean manuallyEdited = schedule != null && schedule.isManuallyEdited();
+      return new StaffDayResponse(date, day, works, start, doubleShift, manuallyEdited, works ? shiftLabel(start, doubleShift) : "Descanso", null, null, null);
     }).toList();
   }
 
@@ -342,12 +343,12 @@ public class StaffService {
 
   private ScheduleResponse toSchedule(EmployeeSchedule schedule) {
     boolean doubleShift = isDoubleShift(schedule.isWorking(), schedule.getStartTime(), schedule.isDoubleShift());
-    return new ScheduleResponse(schedule.getId(), schedule.getWeekStart(), schedule.getDayOfWeek(), schedule.isWorking(), schedule.getStartTime(), doubleShift);
+    return new ScheduleResponse(schedule.getId(), schedule.getWeekStart(), schedule.getDayOfWeek(), schedule.isWorking(), schedule.getStartTime(), doubleShift, schedule.isManuallyEdited());
   }
 
   private ScheduleResponse toVisibleSchedule(EmployeeSchedule schedule, LocalDate weekStart) {
     if (shouldHideUneditedFutureSchedule(weekStart, schedule)) {
-      return new ScheduleResponse(schedule.getId(), schedule.getWeekStart(), schedule.getDayOfWeek(), false, null, false);
+      return new ScheduleResponse(schedule.getId(), schedule.getWeekStart(), schedule.getDayOfWeek(), false, null, false, false);
     }
     return toSchedule(schedule);
   }

@@ -157,6 +157,7 @@ interface StaffSchedule {
   working: boolean;
   startTime?: string;
   doubleShift?: boolean;
+  manuallyEdited?: boolean;
 }
 
 interface StaffException {
@@ -182,6 +183,7 @@ interface StaffWeek {
       working: boolean;
       startTime?: string;
       doubleShift?: boolean;
+      manuallyEdited?: boolean;
       status: string;
       note?: string;
       exceptionType?: StaffExceptionType;
@@ -1790,7 +1792,7 @@ export class App implements OnInit {
         if (requestId !== this.employeeScheduleRequestId || requestDate !== this.staffWeekDate) {
           return;
         }
-        this.employeeSchedule.set(this.sortSchedule(schedule.map(item => this.withDoubleShiftFallback(item))));
+        this.employeeSchedule.set(this.sortSchedule(schedule.map(item => this.withDoubleShiftFallback(item, requestDate))));
         this.employeeExceptions.set(exceptions);
       },
       error: error => Swal.fire('No se pudo cargar detalle', this.errorMessage(error), 'error')
@@ -1816,13 +1818,14 @@ export class App implements OnInit {
       ...day,
       working: payload.working,
       startTime: payload.startTime || undefined,
-      doubleShift: payload.doubleShift
+      doubleShift: payload.doubleShift,
+      manuallyEdited: true
     };
     this.employeeSchedule.set(this.sortSchedule(this.employeeSchedule().map(item => item.dayOfWeek === optimistic.dayOfWeek ? optimistic : item)));
     this.patchStaffWeekDay(employeeId, optimistic);
     this.http.put<StaffSchedule>(`${this.api}/staff/employees/${employeeId}/schedule?date=${weekDate}`, payload, this.options()).subscribe({
       next: updated => {
-        const merged = { ...updated, doubleShift: payload.doubleShift };
+        const merged = { ...updated, doubleShift: payload.doubleShift, manuallyEdited: true };
         this.employeeSchedule.set(this.sortSchedule(this.employeeSchedule().map(item => item.dayOfWeek === merged.dayOfWeek ? merged : item)));
         this.patchStaffWeekDay(employeeId, merged);
       },
@@ -1853,6 +1856,7 @@ export class App implements OnInit {
           working: updated.working,
           startTime: updated.startTime,
           doubleShift: updated.doubleShift,
+          manuallyEdited: updated.manuallyEdited,
           status: this.scheduleStatusLabel(updated)
         })
       })
@@ -1870,7 +1874,10 @@ export class App implements OnInit {
     return Number.isFinite(hour) && hour < 15 ? 'Apertura' : 'Cierre';
   }
 
-  private withDoubleShiftFallback<T extends { working?: boolean; startTime?: string; doubleShift?: boolean; status?: string }>(item: T): T {
+  private withDoubleShiftFallback<T extends { working?: boolean; startTime?: string; doubleShift?: boolean; manuallyEdited?: boolean; status?: string; date?: string; weekStart?: string }>(item: T, weekStart?: string): T {
+    if (this.shouldHideUneditedFutureSchedule(item, weekStart)) {
+      return { ...item, working: false, startTime: undefined, doubleShift: false, status: 'Descanso' };
+    }
     return { ...item, doubleShift: this.isDoubleShiftSchedule(item) };
   }
 
@@ -1879,13 +1886,18 @@ export class App implements OnInit {
       ...week,
       rows: week.rows.map(row => ({
         ...row,
-        days: row.days.map(day => this.withDoubleShiftFallback(day))
+        days: row.days.map(day => this.withDoubleShiftFallback(day, week.weekStart))
       }))
     };
   }
 
   private isDoubleShiftSchedule(item: { working?: boolean; startTime?: string; doubleShift?: boolean; status?: string }): boolean {
     return !!item.working && (!!item.doubleShift || this.normalize(item.status || '') === 'dobleteo' || (item.startTime || '').slice(0, 5) === '12:00');
+  }
+
+  private shouldHideUneditedFutureSchedule(item: { manuallyEdited?: boolean; weekStart?: string }, weekStart?: string): boolean {
+    const targetWeek = weekStart || item.weekStart;
+    return !!targetWeek && targetWeek > this.weekStartFromDate(this.currentDateInput()) && !item.manuallyEdited;
   }
 
   saveException(): void {
@@ -2359,6 +2371,13 @@ export class App implements OnInit {
     const date = new Date(year, 0, 1 + (week - 1) * 7);
     const day = date.getDay() || 7;
     date.setDate(date.getDate() + (day <= 4 ? 1 - day : 8 - day));
+    return this.dateInputFromDate(date);
+  }
+
+  private weekStartFromDate(value: string): string {
+    const date = new Date(`${value}T00:00:00`);
+    const day = date.getDay() || 7;
+    date.setDate(date.getDate() + 1 - day);
     return this.dateInputFromDate(date);
   }
 

@@ -16,7 +16,7 @@ public class StaffDtos {
   public record EmployeeResponse(Long id, String name, Long roleId, String roleName, String gender, boolean active, String inactiveReason) {}
 
   public record ScheduleRequest(@NotNull DayOfWeek dayOfWeek, boolean working, LocalTime startTime, boolean doubleShift) {}
-  public record ScheduleResponse(Long id, LocalDate weekStart, DayOfWeek dayOfWeek, boolean working, LocalTime startTime, boolean doubleShift) {}
+  public record ScheduleResponse(Long id, LocalDate weekStart, DayOfWeek dayOfWeek, boolean working, LocalTime startTime, boolean doubleShift, boolean manuallyEdited) {}
 
   public record ExceptionRequest(
       @NotNull Long employeeId,
@@ -42,6 +42,7 @@ public class StaffDtos {
       boolean working,
       LocalTime startTime,
       boolean doubleShift,
+      boolean manuallyEdited,
       String status,
       String note,
       AbsenceType exceptionType,
