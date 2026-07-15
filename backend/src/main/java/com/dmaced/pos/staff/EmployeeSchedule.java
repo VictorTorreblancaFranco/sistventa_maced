@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.ManyToOne;
+import jakarta.persistence.Column;
 import jakarta.persistence.Table;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -25,6 +26,7 @@ public class EmployeeSchedule {
   private DayOfWeek dayOfWeek;
   private boolean working = true;
   private LocalTime startTime;
+  @Column(name = "double_shift")
   private boolean doubleShift;
 
   public Long getId() { return id; }

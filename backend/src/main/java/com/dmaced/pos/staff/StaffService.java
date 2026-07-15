@@ -220,6 +220,10 @@ public class StaffService {
   private List<EmployeeSchedule> ensureWeekSchedule(Employee employee, LocalDate weekStart) {
     List<EmployeeSchedule> schedules = scheduleRepository.findByEmployeeIdAndWeekStart(employee.getId(), weekStart);
     if (schedules.size() >= DayOfWeek.values().length) {
+      if (looksLikeOldAutoTemplate(schedules)) {
+        schedules.forEach(this::clearScheduleDay);
+        return scheduleRepository.saveAll(schedules);
+      }
       return schedules;
     }
     for (DayOfWeek day : DayOfWeek.values()) {
@@ -230,12 +234,26 @@ public class StaffService {
       schedule.setEmployee(employee);
       schedule.setWeekStart(weekStart);
       schedule.setDayOfWeek(day);
-      schedule.setWorking(false);
-      schedule.setStartTime(null);
-      schedule.setDoubleShift(false);
+      clearScheduleDay(schedule);
       schedules.add(scheduleRepository.save(schedule));
     }
     return schedules;
+  }
+
+  private boolean looksLikeOldAutoTemplate(List<EmployeeSchedule> schedules) {
+    return Arrays.stream(DayOfWeek.values()).allMatch(day -> schedules.stream()
+        .filter(schedule -> schedule.getDayOfWeek() == day)
+        .findFirst()
+        .map(schedule -> day == DayOfWeek.MONDAY
+            ? !schedule.isWorking() && schedule.getStartTime() == null && !schedule.isDoubleShift()
+            : schedule.isWorking() && LocalTime.of(18, 0).equals(schedule.getStartTime()) && !schedule.isDoubleShift())
+        .orElse(false));
+  }
+
+  private void clearScheduleDay(EmployeeSchedule schedule) {
+    schedule.setWorking(false);
+    schedule.setStartTime(null);
+    schedule.setDoubleShift(false);
   }
 
   private LocalDate weekStart(LocalDate date) {
