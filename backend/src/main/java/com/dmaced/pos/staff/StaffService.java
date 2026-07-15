@@ -138,6 +138,7 @@ public class StaffService {
     schedule.setWorking(request.working());
     schedule.setStartTime(request.working() ? request.startTime() : null);
     schedule.setDoubleShift(isDoubleShift(request.working(), request.startTime(), request.doubleShift()));
+    schedule.setManuallyEdited(true);
     return toSchedule(scheduleRepository.save(schedule));
   }
 
@@ -220,7 +221,7 @@ public class StaffService {
   private List<EmployeeSchedule> ensureWeekSchedule(Employee employee, LocalDate weekStart) {
     List<EmployeeSchedule> schedules = scheduleRepository.findByEmployeeIdAndWeekStart(employee.getId(), weekStart);
     if (schedules.size() >= DayOfWeek.values().length) {
-      if (looksLikeOldAutoTemplate(schedules) || looksCopiedFromPreviousWeek(employee, weekStart, schedules)) {
+      if (looksLikeOldAutoTemplate(schedules) || shouldClearUneditedFutureWeek(weekStart, schedules) || looksCopiedFromPreviousWeek(employee, weekStart, schedules)) {
         schedules.forEach(this::clearScheduleDay);
         return scheduleRepository.saveAll(schedules);
       }
@@ -250,8 +251,16 @@ public class StaffService {
         .orElse(false));
   }
 
+  private boolean shouldClearUneditedFutureWeek(LocalDate weekStart, List<EmployeeSchedule> schedules) {
+    return weekStart.isAfter(weekStart(LocalDate.now()))
+        && schedules.stream().noneMatch(EmployeeSchedule::isManuallyEdited)
+        && schedules.stream().anyMatch(EmployeeSchedule::isWorking);
+  }
+
   private boolean looksCopiedFromPreviousWeek(Employee employee, LocalDate weekStart, List<EmployeeSchedule> schedules) {
-    if (schedules.stream().noneMatch(EmployeeSchedule::isWorking)) {
+    if (!weekStart.isAfter(weekStart(LocalDate.now()))
+        || schedules.stream().anyMatch(EmployeeSchedule::isManuallyEdited)
+        || schedules.stream().noneMatch(EmployeeSchedule::isWorking)) {
       return false;
     }
     List<EmployeeSchedule> previous = scheduleRepository.findByEmployeeIdAndWeekStart(employee.getId(), weekStart.minusWeeks(1));
@@ -279,6 +288,7 @@ public class StaffService {
     schedule.setWorking(false);
     schedule.setStartTime(null);
     schedule.setDoubleShift(false);
+    schedule.setManuallyEdited(false);
   }
 
   private LocalDate weekStart(LocalDate date) {

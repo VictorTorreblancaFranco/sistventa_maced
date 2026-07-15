@@ -28,6 +28,8 @@ public class EmployeeSchedule {
   private LocalTime startTime;
   @Column(name = "double_shift")
   private boolean doubleShift;
+  @Column(name = "manually_edited")
+  private boolean manuallyEdited;
 
   public Long getId() { return id; }
   public void setId(Long id) { this.id = id; }
@@ -43,4 +45,6 @@ public class EmployeeSchedule {
   public void setStartTime(LocalTime startTime) { this.startTime = startTime; }
   public boolean isDoubleShift() { return doubleShift; }
   public void setDoubleShift(boolean doubleShift) { this.doubleShift = doubleShift; }
+  public boolean isManuallyEdited() { return manuallyEdited; }
+  public void setManuallyEdited(boolean manuallyEdited) { this.manuallyEdited = manuallyEdited; }
 }
