@@ -1785,6 +1785,9 @@ export class App implements OnInit {
     if (!employeeId) {
       return;
     }
+    if (!day.working) {
+      day.doubleShift = false;
+    }
     const payload = {
       dayOfWeek: day.dayOfWeek,
       working: day.working,
@@ -1798,6 +1801,14 @@ export class App implements OnInit {
       },
       error: error => Swal.fire('No se pudo actualizar horario', this.errorMessage(error), 'error')
     });
+  }
+
+  toggleDoubleShift(day: StaffSchedule): void {
+    if (day.doubleShift) {
+      day.working = true;
+      day.startTime = '12:00';
+    }
+    this.updateSchedule(day);
   }
 
   saveException(): void {
