@@ -137,7 +137,7 @@ public class StaffService {
     });
     schedule.setWorking(request.working());
     schedule.setStartTime(request.working() ? request.startTime() : null);
-    schedule.setDoubleShift(request.working() && request.doubleShift());
+    schedule.setDoubleShift(isDoubleShift(request.working(), request.startTime(), request.doubleShift()));
     return toSchedule(scheduleRepository.save(schedule));
   }
 
@@ -199,7 +199,7 @@ public class StaffService {
       EmployeeSchedule schedule = schedules.stream().filter(item -> item.getDayOfWeek() == day).findFirst().orElse(null);
       boolean works = schedule != null && schedule.isWorking();
       LocalTime start = works ? schedule.getStartTime() : null;
-      boolean doubleShift = works && schedule.isDoubleShift();
+      boolean doubleShift = isDoubleShift(works, start, schedule != null && schedule.isDoubleShift());
       return new StaffDayResponse(date, day, works, start, doubleShift, works ? shiftLabel(start, doubleShift) : "Descanso", null, null, null);
     }).toList();
   }
@@ -299,7 +299,8 @@ public class StaffService {
   }
 
   private ScheduleResponse toSchedule(EmployeeSchedule schedule) {
-    return new ScheduleResponse(schedule.getId(), schedule.getWeekStart(), schedule.getDayOfWeek(), schedule.isWorking(), schedule.getStartTime(), schedule.isDoubleShift());
+    boolean doubleShift = isDoubleShift(schedule.isWorking(), schedule.getStartTime(), schedule.isDoubleShift());
+    return new ScheduleResponse(schedule.getId(), schedule.getWeekStart(), schedule.getDayOfWeek(), schedule.isWorking(), schedule.getStartTime(), doubleShift);
   }
 
   private ExceptionResponse toException(EmployeeException exception) {
@@ -339,6 +340,10 @@ public class StaffService {
     return List.of("ana", "andrea", "angela", "carla", "carmen", "cristhina", "cristina", "diana",
         "elena", "helen", "karla", "lucia", "maria", "melissa", "paola", "rosa",
         "silvia", "sofia", "valeria", "vanessa", "ximena").contains(first);
+  }
+
+  private boolean isDoubleShift(boolean working, LocalTime startTime, boolean doubleShift) {
+    return working && (doubleShift || LocalTime.of(12, 0).equals(startTime));
   }
 
   private String shiftLabel(LocalTime startTime, boolean doubleShift) {

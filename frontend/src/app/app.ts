@@ -1475,7 +1475,7 @@ export class App implements OnInit {
   loadStaffWeek(showError = true): void {
     this.staffRequest(() => this.http.get<StaffWeek>(`${this.api}/staff/week?date=${this.staffWeekDate}`, this.options())).subscribe({
       next: week => {
-        this.staffWeek.set(week);
+        this.staffWeek.set(this.normalizeStaffWeek(week));
         this.staffWeekDate = week.weekStart;
         const employeeId = this.selectedEmployeeId();
         if (employeeId) {
@@ -1773,7 +1773,7 @@ export class App implements OnInit {
       exceptions: this.http.get<StaffException[]>(`${this.api}/staff/employees/${employeeId}/exceptions`, this.options())
     }).subscribe({
       next: ({ schedule, exceptions }) => {
-        this.employeeSchedule.set(this.sortSchedule(schedule));
+        this.employeeSchedule.set(this.sortSchedule(schedule.map(item => this.withDoubleShiftFallback(item))));
         this.employeeExceptions.set(exceptions);
       },
       error: error => Swal.fire('No se pudo cargar detalle', this.errorMessage(error), 'error')
@@ -1845,11 +1845,29 @@ export class App implements OnInit {
     if (!schedule.working) {
       return 'Descanso';
     }
-    if (schedule.doubleShift) {
+    if (this.isDoubleShiftSchedule(schedule)) {
       return 'Dobleteo';
     }
     const hour = Number((schedule.startTime || '').slice(0, 2));
     return Number.isFinite(hour) && hour < 15 ? 'Apertura' : 'Cierre';
+  }
+
+  private withDoubleShiftFallback<T extends { working?: boolean; startTime?: string; doubleShift?: boolean; status?: string }>(item: T): T {
+    return { ...item, doubleShift: this.isDoubleShiftSchedule(item) };
+  }
+
+  private normalizeStaffWeek(week: StaffWeek): StaffWeek {
+    return {
+      ...week,
+      rows: week.rows.map(row => ({
+        ...row,
+        days: row.days.map(day => this.withDoubleShiftFallback(day))
+      }))
+    };
+  }
+
+  private isDoubleShiftSchedule(item: { working?: boolean; startTime?: string; doubleShift?: boolean; status?: string }): boolean {
+    return !!item.working && (!!item.doubleShift || this.normalize(item.status || '') === 'dobleteo' || (item.startTime || '').slice(0, 5) === '12:00');
   }
 
   saveException(): void {
@@ -2059,7 +2077,7 @@ export class App implements OnInit {
     if (!day.working) {
       return 'rest';
     }
-    if (day.doubleShift || this.normalize(day.status || '') === 'dobleteo') {
+    if (this.isDoubleShiftSchedule(day)) {
       return 'double';
     }
     const hour = Number((day.startTime || '').slice(0, 2));
@@ -2070,7 +2088,7 @@ export class App implements OnInit {
     if (!day.working) {
       return day.status || 'Descanso';
     }
-    if (day.doubleShift || this.normalize(day.status || '') === 'dobleteo') {
+    if (this.isDoubleShiftSchedule(day)) {
       return 'Dobleteo';
     }
     const hour = Number((day.startTime || '').slice(0, 2));
