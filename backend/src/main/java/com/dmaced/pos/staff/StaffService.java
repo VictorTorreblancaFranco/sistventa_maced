@@ -220,7 +220,7 @@ public class StaffService {
   private List<EmployeeSchedule> ensureWeekSchedule(Employee employee, LocalDate weekStart) {
     List<EmployeeSchedule> schedules = scheduleRepository.findByEmployeeIdAndWeekStart(employee.getId(), weekStart);
     if (schedules.size() >= DayOfWeek.values().length) {
-      if (looksLikeOldAutoTemplate(schedules)) {
+      if (looksLikeOldAutoTemplate(schedules) || looksCopiedFromPreviousWeek(employee, weekStart, schedules)) {
         schedules.forEach(this::clearScheduleDay);
         return scheduleRepository.saveAll(schedules);
       }
@@ -248,6 +248,31 @@ public class StaffService {
             ? !schedule.isWorking() && schedule.getStartTime() == null && !schedule.isDoubleShift()
             : schedule.isWorking() && LocalTime.of(18, 0).equals(schedule.getStartTime()) && !schedule.isDoubleShift())
         .orElse(false));
+  }
+
+  private boolean looksCopiedFromPreviousWeek(Employee employee, LocalDate weekStart, List<EmployeeSchedule> schedules) {
+    if (!weekStart.isAfter(weekStart(LocalDate.now())) || schedules.stream().noneMatch(EmployeeSchedule::isWorking)) {
+      return false;
+    }
+    List<EmployeeSchedule> previous = scheduleRepository.findByEmployeeIdAndWeekStart(employee.getId(), weekStart.minusWeeks(1));
+    if (previous.size() < DayOfWeek.values().length) {
+      return false;
+    }
+    return Arrays.stream(DayOfWeek.values()).allMatch(day -> {
+      EmployeeSchedule currentDay = scheduleForDay(schedules, day);
+      EmployeeSchedule previousDay = scheduleForDay(previous, day);
+      return currentDay != null && previousDay != null && sameScheduleDay(currentDay, previousDay);
+    });
+  }
+
+  private EmployeeSchedule scheduleForDay(List<EmployeeSchedule> schedules, DayOfWeek day) {
+    return schedules.stream().filter(schedule -> schedule.getDayOfWeek() == day).findFirst().orElse(null);
+  }
+
+  private boolean sameScheduleDay(EmployeeSchedule currentDay, EmployeeSchedule previousDay) {
+    return currentDay.isWorking() == previousDay.isWorking()
+        && currentDay.isDoubleShift() == previousDay.isDoubleShift()
+        && java.util.Objects.equals(currentDay.getStartTime(), previousDay.getStartTime());
   }
 
   private void clearScheduleDay(EmployeeSchedule schedule) {
