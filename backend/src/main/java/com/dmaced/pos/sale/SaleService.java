@@ -110,13 +110,12 @@ public class SaleService {
 
   @Transactional(readOnly = true)
   public List<SaleResponse> byDate(LocalDate date) {
-    return saleRepository.findByCreatedAtBetweenOrderByCreatedAtDesc(date.atStartOfDay(), date.atTime(LocalTime.MAX))
-        .stream().map(this::toResponse).toList();
+    return toResponses(saleRepository.findByCreatedAtBetweenOrderByCreatedAtDesc(date.atStartOfDay(), date.atTime(LocalTime.MAX)));
   }
 
   @Transactional(readOnly = true)
   public List<SaleResponse> recent() {
-    return saleRepository.findTop50ByOrderByCreatedAtDesc().stream().map(this::toResponse).toList();
+    return toResponses(saleRepository.findTop50ByOrderByCreatedAtDesc());
   }
 
   @Transactional
@@ -453,8 +452,29 @@ public class SaleService {
   }
 
   private SaleResponse toResponse(Sale sale) {
+    return toResponse(sale, saleNumbers().getOrDefault(sale.getId(), sale.getId()));
+  }
+
+  private List<SaleResponse> toResponses(List<Sale> sales) {
+    Map<Long, Long> numbers = saleNumbers();
+    return sales.stream()
+        .map(sale -> toResponse(sale, numbers.getOrDefault(sale.getId(), sale.getId())))
+        .toList();
+  }
+
+  private Map<Long, Long> saleNumbers() {
+    Map<Long, Long> numbers = new java.util.HashMap<>();
+    List<Sale> ordered = saleRepository.findAllByOrderByCreatedAtAscIdAsc();
+    for (int index = 0; index < ordered.size(); index++) {
+      numbers.put(ordered.get(index).getId(), (long) index + 1);
+    }
+    return numbers;
+  }
+
+  private SaleResponse toResponse(Sale sale, long saleNumber) {
     return new SaleResponse(
         sale.getId(),
+        saleNumber,
         sale.getCreatedAt(),
         sale.isTakeaway(),
         sale.getServiceLocation(),

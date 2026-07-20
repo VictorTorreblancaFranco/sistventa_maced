@@ -52,6 +52,7 @@ public class SaleDtos {
 
   public record SaleResponse(
       Long id,
+      long saleNumber,
       LocalDateTime createdAt,
       boolean takeaway,
       String serviceLocation,

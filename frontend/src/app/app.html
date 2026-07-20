@@ -336,7 +336,7 @@
         </div>
         <article class="sale-row" *ngFor="let sale of sales()" (click)="selectedSale.set(sale)" [class.active]="selectedSale()?.id === sale.id">
           <div>
-            <strong>#{{ sale.id }} · {{ money(sale.total) }}</strong>
+            <strong>#{{ saleNumber(sale) }} · {{ money(sale.total) }}</strong>
             <small>{{ sale.createdAt | date:'short' }} · {{ saleStatusLabel(sale) }}</small>
           </div>
           <b [class.paid-label]="saleStatusLabel(sale) === 'PAGADA'">{{ saleStatusLabel(sale) === 'PAGADA' ? 'Pagada' : money(sale.remaining) + ' pendiente' }}</b>
@@ -363,7 +363,7 @@
         <ng-container *ngIf="selectedSale() as sale">
           <div class="ticket" [id]="'ticket-' + sale.id">
             <h2>Bar D'maced</h2>
-            <p>Venta #{{ sale.id }}</p>
+            <p>Venta #{{ saleNumber(sale) }}</p>
             <p>{{ sale.createdAt | date:'medium' }} · {{ serviceLocationLabel(sale.serviceLocation, sale.takeaway) }}</p>
             <table>
               <thead><tr><th>Cant.</th><th>Producto</th><th>P. unit.</th><th>Total</th></tr></thead>

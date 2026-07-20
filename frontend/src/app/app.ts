@@ -64,6 +64,7 @@ interface Payment {
 
 interface Sale {
   id: number;
+  saleNumber?: number;
   createdAt: string;
   takeaway: boolean;
   serviceLocation: string;
@@ -662,7 +663,7 @@ export class App implements OnInit {
   deleteSale(sale: Sale, event?: Event): void {
     event?.stopPropagation();
     Swal.fire({
-      title: `Eliminar venta #${sale.id}`,
+      title: `Eliminar venta #${this.saleNumber(sale)}`,
       text: 'Se borrara del historial, dashboard y reportes.',
       icon: 'warning',
       showCancelButton: true,
@@ -707,7 +708,7 @@ export class App implements OnInit {
       title: 'Confirmar pago',
       html: `
         <div style="display:grid;gap:8px;text-align:left">
-          <p style="display:flex;justify-content:space-between;margin:0"><b>Venta:</b><span>#${sale.id}</span></p>
+          <p style="display:flex;justify-content:space-between;margin:0"><b>Venta:</b><span>#${this.saleNumber(sale)}</span></p>
           <p style="display:flex;justify-content:space-between;margin:0"><b>Metodo:</b><span>${this.methodLabel(this.historyPaymentMethod)}</span></p>
           <p style="display:flex;justify-content:space-between;margin:0"><b>Recibido:</b><span>${this.money(received)}</span></p>
           <p style="display:flex;justify-content:space-between;margin:0"><b>Se registrara:</b><span>${this.money(amount)}</span></p>
@@ -799,7 +800,7 @@ export class App implements OnInit {
   deleteAllHistoryPayments(sale: Sale): void {
     Swal.fire({
       title: 'Revertir todos los pagos',
-      text: `La cuenta #${sale.id} volvera a pendiente por ${this.money(sale.total)}.`,
+      text: `La cuenta #${this.saleNumber(sale)} volvera a pendiente por ${this.money(sale.total)}.`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: 'Revertir pagos',
@@ -850,7 +851,7 @@ export class App implements OnInit {
     }
     const canvas = await html2canvas(element, { backgroundColor: '#ffffff', scale: 2 });
     const link = document.createElement('a');
-    link.download = `bar-dmaced-venta-${sale.id}.png`;
+    link.download = `bar-dmaced-venta-${this.saleNumber(sale)}.png`;
     link.href = canvas.toDataURL('image/png');
     link.click();
   }
@@ -966,7 +967,7 @@ export class App implements OnInit {
       pdf.setFontSize(8);
       pdf.setTextColor(20, 24, 22);
       pdf.setFont('helvetica', 'bold');
-      pdf.text(`#${sale.id}`, margin + 2, y + 5);
+      pdf.text(`#${this.saleNumber(sale)}`, margin + 2, y + 5);
       pdf.setFont('helvetica', 'normal');
       pdf.text(`${this.shortTime(sale.createdAt)}`, margin + 18, y + 5);
       pdf.text(this.serviceLocationLabel(sale.serviceLocation, sale.takeaway), margin + 18, y + 9);
@@ -1168,7 +1169,7 @@ export class App implements OnInit {
       y += 5;
 
       daySales.forEach(sale => {
-        const line = `#${sale.id} · ${this.shortTime(sale.createdAt)} · ${this.serviceLocationLabel(sale.serviceLocation, sale.takeaway)} · ${this.saleDetailSummary(sale)} · Total ${this.money(sale.total)} · ${this.saleStatusLabel(sale)}`;
+        const line = `#${this.saleNumber(sale)} · ${this.shortTime(sale.createdAt)} · ${this.serviceLocationLabel(sale.serviceLocation, sale.takeaway)} · ${this.saleDetailSummary(sale)} · Total ${this.money(sale.total)} · ${this.saleStatusLabel(sale)}`;
         const lines = pdf.splitTextToSize(line, pageWidth - margin * 2);
         const rowHeight = 3 + lines.length * 4;
         ensureSpace(rowHeight);
@@ -1290,7 +1291,7 @@ export class App implements OnInit {
     element.className = 'ticket';
     element.innerHTML = `
       <h2>Bar D'maced</h2>
-      <p>Venta #${sale.id}</p>
+      <p>Venta #${this.saleNumber(sale)}</p>
       <p>${this.formatDateTime(sale.createdAt)} · ${this.escapeHtml(this.serviceLocationLabel(sale.serviceLocation, sale.takeaway))}</p>
       <table>
         <thead><tr><th>Cant.</th><th>Producto</th><th>P. unit.</th><th>Total</th></tr></thead>
@@ -2261,6 +2262,10 @@ export class App implements OnInit {
 
   money(value: number): string {
     return new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(Number(value || 0));
+  }
+
+  saleNumber(sale: Pick<Sale, 'id' | 'saleNumber'>): number {
+    return Number(sale.saleNumber || sale.id);
   }
 
   methodLabel(method: PaymentMethod): string {
