@@ -6,26 +6,56 @@ import com.dmaced.pos.product.ProductRepository;
 import com.dmaced.pos.staff.StaffService;
 import java.math.BigDecimal;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Component;
 
 @Component
 public class DataInitializer implements CommandLineRunner {
   private final ProductRepository productRepository;
   private final StaffService staffService;
+  private final JdbcTemplate jdbcTemplate;
 
-  public DataInitializer(ProductRepository productRepository, StaffService staffService) {
+  public DataInitializer(ProductRepository productRepository, StaffService staffService, JdbcTemplate jdbcTemplate) {
     this.productRepository = productRepository;
     this.staffService = staffService;
+    this.jdbcTemplate = jdbcTemplate;
   }
 
   @Override
   public void run(String... args) {
+    repairPaymentMethodConstraint();
     createFixedProduct(ProductCategory.TAPER, "Taper para llevar", "2.00");
     createFixedProduct(ProductCategory.VASO, "Vaso para llevar", "1.00");
     createSpecialProduct("Adicional");
     createSpecialProduct("Copa rota");
     seedMenuProducts();
     staffService.seedDefaults();
+  }
+
+  private void repairPaymentMethodConstraint() {
+    try {
+      var constraints = jdbcTemplate.queryForList("""
+          select con.conname
+          from pg_constraint con
+          join pg_class rel on rel.oid = con.conrelid
+          join pg_attribute att on att.attrelid = rel.oid and att.attnum = any(con.conkey)
+          where rel.relname = 'sale_payments'
+            and att.attname = 'method'
+            and con.contype = 'c'
+          """, String.class);
+      constraints.forEach(name -> jdbcTemplate.execute("alter table sale_payments drop constraint if exists " + quoteIdentifier(name)));
+      jdbcTemplate.execute("""
+          alter table sale_payments
+          add constraint sale_payments_method_check
+          check (method in ('EFECTIVO', 'YAPE', 'QR', 'VISA'))
+          """);
+    } catch (Exception ignored) {
+      // The local schema may not need repair, or the database may not be PostgreSQL.
+    }
+  }
+
+  private String quoteIdentifier(String identifier) {
+    return "\"" + identifier.replace("\"", "\"\"") + "\"";
   }
 
   private void createFixedProduct(ProductCategory category, String name, String price) {
